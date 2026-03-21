@@ -107,7 +107,7 @@ git log --oneline --reverse | head -1
 cd ..
 ```
 
-Then update `lintcn/src/cache.ts`:
+Then update `src/cache.ts`:
 
 ```ts
 export const DEFAULT_TSGOLINT_VERSION = '<new fork commit hash>'
@@ -121,14 +121,12 @@ submodule. Check `git diff upstream/main -- .gitmodules` or
 After updating:
 
 ```bash
-cd lintcn
-
 # clear cache to test fresh download
 rm -rf ~/.cache/lintcn
 
 # build and test
 pnpm build
-cd ../discord && node ../lintcn/dist/cli.js lint
+npx lintcn lint  # run in a project that has .lintcn/ rules
 
 # bump CACHE_SCHEMA_VERSION in src/hash.ts if the fork changed
 # pkg/runner or codegen-affecting code
