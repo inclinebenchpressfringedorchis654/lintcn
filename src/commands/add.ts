@@ -91,6 +91,7 @@ export async function addRule(url: string): Promise<void> {
   // derive filename from URL
   const urlPath = new URL(rawUrl).pathname
   const fileName = path.basename(urlPath)
+  const baseName = fileName.replace(/\.go$/, '')
   if (!fileName.endsWith('.go')) {
     throw new Error(`URL must point to a .go file, got: ${fileName}`)
   }
@@ -109,14 +110,21 @@ export async function addRule(url: string): Promise<void> {
   fs.writeFileSync(filePath, processed)
   console.log(`Added ${fileName}`)
 
-  // try to fetch matching test file
-  const testUrl = deriveTestUrl(rawUrl)
-  const testContent = await tryFetchFile(testUrl)
-  if (testContent) {
-    const testFileName = fileName.replace(/\.go$/, '_test.go')
-    const testProcessed = rewritePackageName(testContent)
-    fs.writeFileSync(path.join(lintcnDir, testFileName), testProcessed)
-    console.log(`Added ${testFileName}`)
+  // try to fetch companion files from the same directory:
+  // - _test.go (tests)
+  // - options.go (rule options struct, 31 of 50+ tsgolint rules have this)
+  const dirUrl = rawUrl.replace(/\/[^/]+$/, '')
+  const companionFiles = [
+    { url: deriveTestUrl(rawUrl), name: fileName.replace(/\.go$/, '_test.go') },
+    { url: `${dirUrl}/options.go`, name: `${baseName}_options.go` },
+  ]
+  for (const companion of companionFiles) {
+    const content = await tryFetchFile(companion.url)
+    if (content) {
+      const processed = rewritePackageName(content)
+      fs.writeFileSync(path.join(lintcnDir, companion.name), processed)
+      console.log(`Added ${companion.name}`)
+    }
   }
 
   // ensure .tsgolint source is available and generate editor support files
