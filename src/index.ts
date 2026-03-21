@@ -1,0 +1,6 @@
+export { discoverRules, parseMetadata, parseRuleVar } from './discover.ts'
+export type { RuleMetadata } from './discover.ts'
+export { addRule } from './commands/add.ts'
+export { lint, buildBinary } from './commands/lint.ts'
+export { listRules } from './commands/list.ts'
+export { removeRule } from './commands/remove.ts'
