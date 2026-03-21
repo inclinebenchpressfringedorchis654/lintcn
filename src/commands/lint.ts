@@ -6,7 +6,7 @@ import { spawn } from 'node:child_process'
 import { requireLintcnDir } from '../paths.ts'
 import { discoverRules } from '../discover.ts'
 import { generateBuildWorkspace } from '../codegen.ts'
-import { ensureTsgolintSource, DEFAULT_TSGOLINT_VERSION, cachedBinaryExists, getBinaryPath, getBuildDir, getBinDir } from '../cache.ts'
+import { ensureTsgolintSource, validateVersion, cachedBinaryExists, getBinaryPath, getBuildDir, getBinDir } from '../cache.ts'
 import { computeContentHash } from '../hash.ts'
 import { execAsync } from '../exec.ts'
 
@@ -15,7 +15,7 @@ async function checkGoInstalled(): Promise<void> {
     await execAsync('go', ['version'])
   } catch {
     throw new Error(
-      'Go 1.26+ is required to build rules.\n' +
+      'Go is required to build rules.\n' +
       'Install from https://go.dev/dl/',
     )
   }
@@ -28,6 +28,7 @@ export async function buildBinary({
   rebuild: boolean
   tsgolintVersion: string
 }): Promise<string> {
+  validateVersion(tsgolintVersion)
   await checkGoInstalled()
 
   const lintcnDir = requireLintcnDir()
@@ -37,7 +38,7 @@ export async function buildBinary({
     throw new Error('No rules found in .lintcn/. Run `lintcn add <url>` to add rules.')
   }
 
-  console.log(`Found ${rules.length} custom rule${rules.length === 1 ? '' : 's'} (tsgolint ${tsgolintVersion})`)
+  console.log(`Found ${rules.length} custom rule${rules.length === 1 ? '' : 's'} (tsgolint ${tsgolintVersion.slice(0, 8)})`)
 
   // ensure tsgolint source
   const tsgolintDir = await ensureTsgolintSource(tsgolintVersion)
@@ -54,8 +55,8 @@ export async function buildBinary({
     return getBinaryPath(contentHash)
   }
 
-  // generate build workspace
-  const buildDir = getBuildDir()
+  // generate build workspace (per-hash dir to avoid races between concurrent processes)
+  const buildDir = getBuildDir(contentHash)
   console.log('Generating build workspace...')
   generateBuildWorkspace({
     buildDir,

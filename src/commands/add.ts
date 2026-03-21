@@ -122,11 +122,17 @@ export async function addRule(url: string): Promise<void> {
   // ensure .tsgolint source is available and generate editor support files
   const tsgolintDir = await ensureTsgolintSource(DEFAULT_TSGOLINT_VERSION)
 
-  // create .tsgolint symlink inside .lintcn for gopls
+  // create .tsgolint symlink inside .lintcn for gopls.
+  // Use lstatSync to detect broken symlinks (existsSync returns false for broken links)
   const tsgolintLink = path.join(lintcnDir, '.tsgolint')
-  if (!fs.existsSync(tsgolintLink)) {
-    fs.symlinkSync(tsgolintDir, tsgolintLink)
+  try {
+    fs.lstatSync(tsgolintLink)
+    // exists (possibly broken) — remove and recreate
+    fs.rmSync(tsgolintLink, { force: true })
+  } catch {
+    // doesn't exist at all
   }
+  fs.symlinkSync(tsgolintDir, tsgolintLink)
 
   generateEditorGoFiles(lintcnDir)
   console.log('Editor support files generated (go.work, go.mod)')

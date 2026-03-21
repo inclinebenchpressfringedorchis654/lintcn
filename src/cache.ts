@@ -4,12 +4,15 @@
 //
 // Cache layout:
 //   ~/.cache/lintcn/tsgolint/<version>/   — extracted source (read-only)
+//   ~/.cache/lintcn/build/<content-hash>/ — per-hash build workspace (no race)
 //   ~/.cache/lintcn/bin/<content-hash>    — compiled binaries
 
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import { pipeline } from 'node:stream/promises'
+import { extract } from 'tar'
 import { execAsync } from './exec.ts'
 
 // Pinned tsgolint fork commit — updated with each lintcn release.
@@ -19,9 +22,22 @@ export const DEFAULT_TSGOLINT_VERSION = 'a93604379da2631b70332a65bc47eb5ced689a3
 
 // Pinned typescript-go base commit from microsoft/typescript-go (before patches).
 // Patches from tsgolint/patches/ are applied on top during setup.
-// This is the upstream commit the tsgolint submodule was forked from.
 // Must be updated when DEFAULT_TSGOLINT_VERSION changes.
 const TYPESCRIPT_GO_COMMIT = '1b7eabe122e1575a0df9c77eccdf4e063c623224'
+
+// Strict pattern for version strings — prevents path traversal via ../
+const VERSION_PATTERN = /^[a-zA-Z0-9._-]+$/
+
+/** Validate version string to prevent path traversal attacks.
+ *  Only allows alphanumeric chars, dots, underscores, and hyphens. */
+export function validateVersion(version: string): void {
+  if (!VERSION_PATTERN.test(version)) {
+    throw new Error(
+      `Invalid tsgolint version "${version}". ` +
+      'Version must only contain alphanumeric characters, dots, underscores, and hyphens.',
+    )
+  }
+}
 
 export function getCacheDir(): string {
   return path.join(os.homedir(), '.cache', 'lintcn')
@@ -39,28 +55,50 @@ export function getBinaryPath(contentHash: string): string {
   return path.join(getBinDir(), contentHash)
 }
 
-export function getBuildDir(): string {
-  return path.join(getCacheDir(), 'build')
+/** Per-hash build directory to avoid races between concurrent lintcn processes. */
+export function getBuildDir(contentHash: string): string {
+  return path.join(getCacheDir(), 'build', contentHash)
 }
 
 /** Download a tarball from URL and extract it to targetDir.
+ *  Uses the `tar` npm package for cross-platform support (no shell tar needed).
  *  GitHub tarballs have a top-level directory like `repo-ref/`,
  *  so we strip the first path component during extraction. */
 async function downloadAndExtract(url: string, targetDir: string): Promise<void> {
-  const response = await fetch(url)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => {
+    controller.abort(new Error(`Download timed out after 120s: ${url}`))
+  }, 120_000)
+
+  let response: Response
+  try {
+    response = await fetch(url, { signal: controller.signal })
+  } finally {
+    clearTimeout(timeout)
+  }
+
   if (!response.ok || !response.body) {
     throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`)
   }
 
-  fs.mkdirSync(targetDir, { recursive: true })
+  // download to temp file with random suffix to avoid collisions
+  const tmpTarGz = path.join(os.tmpdir(), `lintcn-${crypto.randomBytes(8).toString('hex')}.tar.gz`)
+  try {
+    const fileStream = fs.createWriteStream(tmpTarGz)
+    // @ts-ignore ReadableStream vs NodeJS.ReadableStream mismatch
+    await pipeline(response.body, fileStream)
 
-  const tmpTarGz = path.join(os.tmpdir(), `lintcn-${Date.now()}.tar.gz`)
-  const fileStream = fs.createWriteStream(tmpTarGz)
-  // @ts-ignore ReadableStream vs NodeJS.ReadableStream mismatch
-  await pipeline(response.body, fileStream)
-
-  await execAsync('tar', ['xzf', tmpTarGz, '--strip-components=1', '-C', targetDir])
-  fs.rmSync(tmpTarGz, { force: true })
+    // extract with npm tar package (cross-platform, no shell tar needed)
+    fs.mkdirSync(targetDir, { recursive: true })
+    await extract({
+      file: tmpTarGz,
+      cwd: targetDir,
+      strip: 1,
+    })
+  } finally {
+    // always clean up temp file
+    fs.rmSync(tmpTarGz, { force: true })
+  }
 }
 
 /** Apply git-format patches using `patch -p1` (no git required).
@@ -79,6 +117,8 @@ async function applyPatches(patchesDir: string, targetDir: string): Promise<numb
 }
 
 export async function ensureTsgolintSource(version: string): Promise<string> {
+  validateVersion(version)
+
   const sourceDir = getTsgolintSourceDir(version)
   const readyMarker = path.join(sourceDir, '.lintcn-ready')
 
@@ -86,7 +126,12 @@ export async function ensureTsgolintSource(version: string): Promise<string> {
     return sourceDir
   }
 
-  // clean up any partial previous attempt so we start fresh
+  // Use a temp directory for the download, then atomic rename on success.
+  // This prevents concurrent processes from seeing partial state, and
+  // avoids the "non-empty dir on retry" problem.
+  const tmpDir = path.join(getCacheDir(), 'tsgolint', `.tmp-${version}-${crypto.randomBytes(4).toString('hex')}`)
+
+  // clean up any partial previous attempt
   if (fs.existsSync(sourceDir)) {
     fs.rmSync(sourceDir, { recursive: true })
   }
@@ -95,16 +140,16 @@ export async function ensureTsgolintSource(version: string): Promise<string> {
     // download tsgolint fork tarball
     console.log(`Downloading tsgolint@${version.slice(0, 8)}...`)
     const tsgolintUrl = `https://github.com/remorses/tsgolint/archive/${version}.tar.gz`
-    await downloadAndExtract(tsgolintUrl, sourceDir)
+    await downloadAndExtract(tsgolintUrl, tmpDir)
 
     // download typescript-go from microsoft (base commit before patches)
-    const tsGoDir = path.join(sourceDir, 'typescript-go')
+    const tsGoDir = path.join(tmpDir, 'typescript-go')
     console.log('Downloading typescript-go...')
     const tsGoUrl = `https://github.com/microsoft/typescript-go/archive/${TYPESCRIPT_GO_COMMIT}.tar.gz`
     await downloadAndExtract(tsGoUrl, tsGoDir)
 
     // apply tsgolint's patches to typescript-go
-    const patchesDir = path.join(sourceDir, 'patches')
+    const patchesDir = path.join(tmpDir, 'patches')
     if (fs.existsSync(patchesDir)) {
       const count = await applyPatches(patchesDir, tsGoDir)
       if (count > 0) {
@@ -113,7 +158,7 @@ export async function ensureTsgolintSource(version: string): Promise<string> {
     }
 
     // copy internal/collections from typescript-go (required by tsgolint, done by `just init`)
-    const collectionsDir = path.join(sourceDir, 'internal', 'collections')
+    const collectionsDir = path.join(tmpDir, 'internal', 'collections')
     const tsGoCollections = path.join(tsGoDir, 'internal', 'collections')
     if (fs.existsSync(tsGoCollections)) {
       fs.mkdirSync(collectionsDir, { recursive: true })
@@ -126,12 +171,17 @@ export async function ensureTsgolintSource(version: string): Promise<string> {
     }
 
     // write ready marker
-    fs.writeFileSync(readyMarker, new Date().toISOString())
+    fs.writeFileSync(path.join(tmpDir, '.lintcn-ready'), new Date().toISOString())
+
+    // atomic rename: move completed dir to final location
+    fs.mkdirSync(path.dirname(sourceDir), { recursive: true })
+    fs.renameSync(tmpDir, sourceDir)
+
     console.log('tsgolint source ready')
   } catch (err) {
-    // clean up partial download so next run starts fresh
-    if (fs.existsSync(sourceDir)) {
-      fs.rmSync(sourceDir, { recursive: true })
+    // clean up partial temp directory
+    if (fs.existsSync(tmpDir)) {
+      fs.rmSync(tmpDir, { recursive: true })
     }
     throw err
   }

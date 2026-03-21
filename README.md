@@ -49,9 +49,11 @@ my-project/
 When you run `npx lintcn lint`, the CLI:
 
 1. Scans `.lintcn/*.go` for rule definitions
-2. Generates a Go workspace with all 50+ built-in tsgolint rules + your custom rules
+2. Generates a Go workspace with your custom rules
 3. Compiles a custom binary (cached — rebuilds only when rules change)
 4. Runs the binary against your project
+
+You can run `lintcn lint` from any subdirectory — it walks up to find `.lintcn/` and lints the cwd project.
 
 ## Writing a rule
 
@@ -68,8 +70,8 @@ package lintcn
 import (
     "github.com/microsoft/typescript-go/shim/ast"
     "github.com/microsoft/typescript-go/shim/checker"
-    "github.com/typescript-eslint/tsgolint/internal/rule"
-    "github.com/typescript-eslint/tsgolint/internal/utils"
+    "github.com/typescript-eslint/tsgolint/pkg/rule"
+    "github.com/typescript-eslint/tsgolint/pkg/utils"
 )
 
 var NoUnhandledErrorRule = rule.Rule{
@@ -134,7 +136,7 @@ void getUser("id")
 ```json
 {
   "devDependencies": {
-    "lintcn": "0.1.0"
+    "lintcn": "0.4.0"
   }
 }
 ```
@@ -154,8 +156,7 @@ npx lintcn lint --tsgolint-version v0.10.0
 ## Prerequisites
 
 - **Node.js** — for the CLI
-- **Go 1.26+** — for compiling rules (`go.dev/dl`)
-- **Git** — for cloning tsgolint source on first build
+- **Go** — for compiling rules (`go.dev/dl`)
 
 Go is only needed for `lintcn lint` / `lintcn build`. Adding and listing rules works without Go.
 
