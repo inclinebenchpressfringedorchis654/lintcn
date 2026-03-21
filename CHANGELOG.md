@@ -1,14 +1,18 @@
+## 0.5.0
+
+1. **Security fix — path traversal in `--tsgolint-version`** — the version flag is now validated against a strict pattern. Previously a value like `../../etc` could escape the cache directory.
+
+2. **Fixed intermittent failures with concurrent `lintcn lint` runs** — build workspaces are now per-content-hash instead of shared. Two processes running simultaneously no longer corrupt each other's build.
+
+3. **Cross-platform tar extraction** — replaced shell `tar` command with the npm `tar` package. Works on Windows without needing system tar.
+
+4. **No more `patch` command required** — tsgolint downloads now use a fork with a clean `internal/runner.Run()` entry point. Zero modifications to existing tsgolint files; upstream syncs will never conflict.
+
+5. **Downloads no longer hang** — 120s timeout on all GitHub tarball downloads.
+
+6. **Fixed broken `.tsgolint` symlink** — `lintcn add` now correctly detects and recreates broken symlinks.
+
 ## 0.4.0
-
-1. **Simpler rule imports** — rules now import from `pkg/rule`, `pkg/utils`, etc. instead of `internal/rule`. The `internal/` child-module-path hack is gone. Your `.go` files use clean import paths:
-   ```go
-   import (
-       "github.com/typescript-eslint/tsgolint/pkg/rule"
-       "github.com/typescript-eslint/tsgolint/pkg/utils"
-   )
-   ```
-
-2. **Simpler codegen** — uses a tsgolint fork with `pkg/runner.Run()`, eliminating all regex surgery on main.go. The generated binary entry point is a 15-line template instead of a patched copy of tsgolint's main.go.
 
 ## 0.3.0
 
