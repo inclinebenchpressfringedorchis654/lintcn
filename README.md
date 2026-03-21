@@ -70,8 +70,8 @@ package lintcn
 import (
     "github.com/microsoft/typescript-go/shim/ast"
     "github.com/microsoft/typescript-go/shim/checker"
-    "github.com/typescript-eslint/tsgolint/pkg/rule"
-    "github.com/typescript-eslint/tsgolint/pkg/utils"
+    "github.com/typescript-eslint/tsgolint/internal/rule"
+    "github.com/typescript-eslint/tsgolint/internal/utils"
 )
 
 var NoUnhandledErrorRule = rule.Rule{

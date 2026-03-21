@@ -16,9 +16,9 @@ import { extract } from 'tar'
 import { execAsync } from './exec.ts'
 
 // Pinned tsgolint fork commit — updated with each lintcn release.
-// Uses remorses/tsgolint fork which exposes pkg/runner.Run() and
-// moves internal/ packages to pkg/ for clean external imports.
-export const DEFAULT_TSGOLINT_VERSION = 'a93604379da2631b70332a65bc47eb5ced689a3b'
+// Uses remorses/tsgolint fork which adds internal/runner.Run().
+// Only 1 commit on top of upstream — zero modifications to existing files.
+export const DEFAULT_TSGOLINT_VERSION = 'e945641eabec22993eda3e7c101692e80417e0ea'
 
 // Pinned typescript-go base commit from microsoft/typescript-go (before patches).
 // Patches from tsgolint/patches/ are applied on top during setup.
