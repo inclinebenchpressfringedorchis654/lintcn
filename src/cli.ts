@@ -9,6 +9,7 @@ import { addRule } from './commands/add.ts'
 import { lint, buildBinary } from './commands/lint.ts'
 import { listRules } from './commands/list.ts'
 import { removeRule } from './commands/remove.ts'
+import { clean } from './commands/clean.ts'
 import { DEFAULT_TSGOLINT_VERSION } from './cache.ts'
 
 const require = createRequire(import.meta.url)
@@ -75,6 +76,12 @@ cli
     const tsgolintVersion = (options.tsgolintVersion as string) || DEFAULT_TSGOLINT_VERSION
     const binaryPath = await buildBinary({ rebuild: !!options.rebuild, tsgolintVersion })
     console.log(binaryPath)
+  })
+
+cli
+  .command('clean', 'Remove cached tsgolint source and compiled binaries to free disk space')
+  .action(() => {
+    clean()
   })
 
 cli.help()
