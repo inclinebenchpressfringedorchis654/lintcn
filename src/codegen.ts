@@ -143,58 +143,60 @@ go 1.26
   fs.writeFileSync(path.join(wrapperDir, 'main.go'), mainGo)
 }
 
-/** Copy all .go files from tsgolint's cmd/tsgolint/ into the wrapper dir,
- *  then inject custom rule imports + entries into main.go.
- *  This is version-safe: no hardcoded rule list, adapts to any tsgolint version. */
+/** Copy tsgolint's main.go and transform it to only include custom rules.
+ *  Two targeted string operations on the copied source:
+ *  1. Remove all /internal/rules/ import lines (built-in rule packages)
+ *  2. Replace allRules body with only custom lintcn.* entries
+ *  Everything else (printDiagnostic, runMain, headless) stays untouched. */
 function generateMainGoFromSource(tsgolintDir: string, customRules: RuleMetadata[]): string {
   const mainGoPath = path.join(tsgolintDir, 'cmd', 'tsgolint', 'main.go')
-  let mainGo = fs.readFileSync(mainGoPath, 'utf-8')
+  const original = fs.readFileSync(mainGoPath, 'utf-8')
 
-  if (customRules.length === 0) {
-    return mainGo
-  }
+  // 1. Remove built-in rule import lines, add lintcn import
+  const lines = original.split('\n')
+  const filtered = lines.filter((line) => {
+    return !line.includes('/internal/rules/')
+  })
 
+  // Insert lintcn import before the first shim import (microsoft/typescript-go)
   const lintcnImport = `\tlintcn "github.com/typescript-eslint/tsgolint/lintcn-rules"`
-
-  // Find the last line that imports from internal/rules/ and insert after it.
-  // The import block has rule imports, then a blank line, then shim imports.
-  const lines = mainGo.split('\n')
-  let lastRuleImportIndex = -1
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('/internal/rules/')) {
-      lastRuleImportIndex = i
+  let shimImportIndex = -1
+  for (let i = 0; i < filtered.length; i++) {
+    if (filtered[i].includes('microsoft/typescript-go/shim')) {
+      shimImportIndex = i
+      break
     }
   }
-  if (lastRuleImportIndex === -1) {
+  if (shimImportIndex === -1) {
     throw new Error(
-      'Failed to inject lintcn import: no /internal/rules/ import found in tsgolint main.go. ' +
-      'The tsgolint source layout may have changed.',
+      'Failed to find shim import in tsgolint main.go. The source layout may have changed.',
     )
   }
-  lines.splice(lastRuleImportIndex + 1, 0, lintcnImport)
-  mainGo = lines.join('\n')
+  if (customRules.length > 0) {
+    filtered.splice(shimImportIndex, 0, lintcnImport, '')
+  }
 
-  // Add custom rule entries to allRules slice.
+  let mainGo = filtered.join('\n')
+
+  // 2. Replace allRules body with only custom entries
   const customEntries = customRules.map((r) => {
     return `\tlintcn.${r.varName},`
   }).join('\n')
 
-  // Find last "pkg.XxxRule," entry before "}\n...var allRulesByName"
-  const prevMainGo = mainGo
-  mainGo = mainGo.replace(
-    /(\w+\.\w+Rule,\s*\n)(}\s*\n\s*var allRulesByName)/,
-    `$1${customEntries}\n$2`,
-  )
-
-  if (mainGo === prevMainGo) {
+  const allRulesPattern = /var allRules = \[]rule\.Rule\{[^}]*\}/s
+  if (!allRulesPattern.test(mainGo)) {
     throw new Error(
-      'Failed to inject custom rules into allRules slice: pattern not found in tsgolint main.go. ' +
-      'The tsgolint source layout may have changed.',
+      'Failed to find allRules slice in tsgolint main.go. The source layout may have changed.',
     )
   }
 
-  // final assertion: verify our injections are present
-  if (!mainGo.includes(`lintcn.${customRules[0].varName}`)) {
+  mainGo = mainGo.replace(
+    allRulesPattern,
+    `var allRules = []rule.Rule{\n${customEntries}\n}`,
+  )
+
+  // assertion: verify custom rules are present
+  if (customRules.length > 0 && !mainGo.includes(`lintcn.${customRules[0].varName}`)) {
     throw new Error('Custom rule injection verification failed.')
   }
 
