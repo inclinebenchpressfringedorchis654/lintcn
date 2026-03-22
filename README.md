@@ -188,6 +188,7 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+          cache: false
 
       - uses: actions/setup-node@v4
         with:
@@ -198,6 +199,7 @@ jobs:
         with:
           path: |
             ~/.cache/lintcn
+            ~/go/pkg
           key: lintcn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.lintcn/**/*.go') }}
           restore-keys: |
             lintcn-${{ runner.os }}-${{ runner.arch }}-
