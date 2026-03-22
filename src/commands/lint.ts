@@ -44,7 +44,7 @@ export async function buildBinary({
   const tsgolintDir = await ensureTsgolintSource(tsgolintVersion)
 
   // compute content hash
-  const contentHash = await computeContentHash({
+  const { short: contentHash } = await computeContentHash({
     lintcnDir,
     tsgolintVersion,
   })
@@ -80,7 +80,7 @@ export async function buildBinary({
     console.log('Compiling custom tsgolint binary...')
   }
 
-  const { exitCode: buildExitCode } = await execAsync('go', ['build', '-o', binaryPath, './wrapper'], {
+  const { exitCode: buildExitCode } = await execAsync('go', ['build', '-trimpath', '-o', binaryPath, './wrapper'], {
     cwd: buildDir,
     stdio: 'inherit',
   })

@@ -170,6 +170,44 @@ Each lintcn release bundles a specific tsgolint version. Updating lintcn can cha
 2. Run `npx lintcn build` after updating to verify your rules still compile
 3. Fix any compilation errors before committing
 
+## CI Setup
+
+The first `lintcn lint` compiles a custom Go binary (~30s). Subsequent runs use the cached binary (<1s). Cache `~/.cache/lintcn/` and Go's build cache to keep CI fast.
+
+```yaml
+# .github/workflows/lint.yml
+name: Lint
+on: [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Cache lintcn binary + Go build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/lintcn
+          key: lintcn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.lintcn/**/*.go') }}
+          restore-keys: |
+            lintcn-${{ runner.os }}-${{ runner.arch }}-
+
+      - run: npm ci
+      - run: npx lintcn lint
+```
+
+The cache key includes a hash of your rule files — when rules change, the binary is recompiled. The `restore-keys` fallback ensures Go's build cache is still used even when rules change, so recompilation takes ~1s instead of 30s.
+
 ## Prerequisites
 
 - **Node.js** — for the CLI
