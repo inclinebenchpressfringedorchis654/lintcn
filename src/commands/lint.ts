@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import { spawn } from 'node:child_process'
 import { requireLintcnDir } from '../paths.ts'
 import { discoverRules } from '../discover.ts'
-import { generateBuildWorkspace } from '../codegen.ts'
+import { generateBuildWorkspace, generateEditorGoFiles } from '../codegen.ts'
 import { ensureTsgolintSource, validateVersion, cachedBinaryExists, getBinaryPath, getBuildDir, getBinDir } from '../cache.ts'
 import { computeContentHash } from '../hash.ts'
 import { execAsync } from '../exec.ts'
@@ -54,6 +54,9 @@ export async function buildBinary({
     console.log('Using cached binary')
     return getBinaryPath(contentHash)
   }
+
+  // ensure .lintcn/go.mod exists (gitignored, needed by the build workspace symlink)
+  generateEditorGoFiles(lintcnDir)
 
   // generate build workspace (per-hash dir to avoid races between concurrent processes)
   const buildDir = getBuildDir(contentHash)
