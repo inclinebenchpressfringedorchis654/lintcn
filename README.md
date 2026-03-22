@@ -185,11 +185,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-          cache: false
-
       - uses: actions/setup-node@v4
         with:
           node-version: 22

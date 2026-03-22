@@ -7,11 +7,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
-          cache: false
-
       - uses: pnpm/action-setup@v4
 
       - uses: actions/setup-node@v4
