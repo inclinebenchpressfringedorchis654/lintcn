@@ -1,3 +1,55 @@
+## 0.6.0
+
+1. **Rules now live in subfolders** — each rule is its own Go package under `.lintcn/{rule_name}/`, replacing the old flat `.lintcn/*.go` layout. This eliminates the need to rename `options.go` and `schema.json` companions — they stay in the subfolder with their original names, and the Go package name matches the folder. `lintcn add` now fetches the entire rule folder automatically.
+
+   ```
+   .lintcn/
+       no_floating_promises/
+           no_floating_promises.go
+           no_floating_promises_test.go
+           options.go      ← original name, no renaming
+           schema.json
+       my_custom_rule/
+           my_custom_rule.go
+   ```
+
+2. **`lintcn add` fetches whole folders** — both folder URLs (`/tree/`) and file URLs (`/blob/`) now fetch every `.go` and `.json` file in the rule's directory. Passing a file URL auto-detects the parent folder:
+
+   ```bash
+   # folder URL
+   lintcn add https://github.com/oxc-project/tsgolint/tree/main/internal/rules/no_floating_promises
+
+   # file URL — auto-fetches the whole folder
+   lintcn add https://github.com/oxc-project/tsgolint/blob/main/internal/rules/await_thenable/await_thenable.go
+   ```
+
+3. **Error for flat `.go` files in `.lintcn/`** — if leftover flat files from older versions are detected, lintcn now prints a clear migration error with instructions instead of silently ignoring them.
+
+4. **Reproducible builds with `-trimpath`** — the Go binary is now built with `-trimpath`, stripping absolute paths from the output. Binaries are identical across machines for the same rule content + tsgolint version + platform.
+
+5. **Faster cache hits** — Go version removed from the content hash. The compiled binary is a standalone executable with no Go runtime dependency, so the Go version used to build it doesn't affect correctness. Also excludes `_test.go` files from the hash since tests don't affect the binary.
+
+6. **Go compilation output is live** — `go build` now inherits stdio, so compilation progress and errors stream directly to the terminal instead of being silently captured.
+
+7. **First-build guidance** — on first compile (cold Go cache), lintcn explains the one-time 30s cost and shows which directories to cache in CI:
+   ```
+   Compiling custom tsgolint binary (first build — may take 30s+ to compile dependencies)...
+   Subsequent builds will be fast (~1s). In CI, cache ~/.cache/lintcn/ and GOCACHE (run `go env GOCACHE`).
+   ```
+
+8. **GitHub Actions example** — README now includes a copy-paste workflow that caches the compiled binary. Subsequent CI runs take ~12s (vs ~4min cold):
+
+   ```yaml
+   - name: Cache lintcn binary + Go build cache
+     uses: actions/cache@v4
+     with:
+       path: |
+         ~/.cache/lintcn
+         ~/go/pkg
+       key: lintcn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.lintcn/**/*.go') }}
+       restore-keys: lintcn-${{ runner.os }}-${{ runner.arch }}-
+   ```
+
 ## 0.5.0
 
 1. **Security fix — path traversal in `--tsgolint-version`** — the version flag is now validated against a strict pattern. Previously a value like `../../etc` could escape the cache directory.
