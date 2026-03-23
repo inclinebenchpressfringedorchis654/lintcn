@@ -1,0 +1,54 @@
+
+[TestNoRedundantInCheck/invalid-0 - 1]
+Diagnostic 1: redundantInCheck (4:8 - 4:21)
+Message: Property `name` already exists in type `User`. This `in` check is redundant because the property is always present.
+   3 |             declare const user: User;
+   4 |             if ('name' in user) { console.log(user.name); }
+     |                 ~~~~~~~~~~~~~~
+   5 |         
+---
+
+[TestNoRedundantInCheck/invalid-1 - 1]
+Diagnostic 1: redundantInCheck (5:8 - 5:23)
+Message: Property `name` already exists in type `Cat | Dog`. This `in` check is redundant because the property is always present.
+   4 |             declare const animal: Cat | Dog;
+   5 |             if ('name' in animal) { console.log(animal.name); }
+     |                 ~~~~~~~~~~~~~~~~
+   6 |         
+---
+
+[TestNoRedundantInCheck/invalid-2 - 1]
+Diagnostic 1: redundantInCheck (4:8 - 4:21)
+Message: Property `name` already exists in type `User`. This `in` check is redundant because the property is always present.
+   3 |             declare const user: User;
+   4 |             if ('name' in user) { console.log(user.name); }
+     |                 ~~~~~~~~~~~~~~
+   5 |         
+---
+
+[TestNoRedundantInCheck/invalid-3 - 1]
+Diagnostic 1: redundantInCheck (4:8 - 4:23)
+Message: Property `host` already exists in type `Config`. This `in` check is redundant because the property is always present.
+   3 |             declare const config: Config;
+   4 |             if ('host' in config) { console.log(config.host); }
+     |                 ~~~~~~~~~~~~~~~~
+   5 |         
+---
+
+[TestNoRedundantInCheck/invalid-4 - 1]
+Diagnostic 1: redundantInCheck (5:8 - 5:18)
+Message: Property `id` already exists in type `Derived`. This `in` check is redundant because the property is always present.
+   4 |             declare const obj: Derived;
+   5 |             if ('id' in obj) { console.log(obj.id); }
+     |                 ~~~~~~~~~~~
+   6 |         
+---
+
+[TestNoRedundantInCheck/invalid-5 - 1]
+Diagnostic 1: redundantInCheck (6:8 - 6:20)
+Message: Property `shared` already exists in type `A | B | C`. This `in` check is redundant because the property is always present.
+   5 |             declare const x: A | B | C;
+   6 |             if ('shared' in x) { console.log(x.shared); }
+     |                 ~~~~~~~~~~~~~
+   7 |         
+---

@@ -1,0 +1,39 @@
+no-redundant-in-check
+
+Flags `"y" in x` checks where the type of x already has y as a required
+(non-optional) property in all union constituents. The check is dead code
+because the property is guaranteed to exist at runtime.
+
+Source: custom rule for lintcn
+
+The Problem
+
+  interface User { name: string; age: number }
+  function process(user: User) {
+    if ('name' in user) {  // redundant — User always has 'name'
+      console.log(user.name)
+    }
+  }
+
+The `in` operator returns true if the named property exists on the object.
+When the type system already guarantees the property is present and non-optional,
+the check can never be false. This is dead code that adds noise and confuses
+readers about the type's guarantees.
+
+What Gets Flagged
+
+  Situation                           Flagged   Reason
+  Required property on interface      yes       always present
+  Required in ALL union members        yes       always present in every variant
+  Required on class                    yes       always present
+  Required from base interface         yes       inherited, always present
+
+What Is NOT Flagged
+
+  Situation                           Reason
+  Optional property (?)               key may not exist at runtime
+  Property in some union members       valid discriminated union narrowing
+  any / unknown / type parameter       can't reason statically
+  Index signature (Record<string, T>) property may not exist
+  Computed key (variable)              can't determine property name
+  Null / undefined in union            in check helps narrow away nullish
