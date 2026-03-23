@@ -48,6 +48,9 @@ const (
 )
 
 func isIndeterminateType(t *checker.Type) bool {
+	if t == nil {
+		return true
+	}
 	flags := checker.Type_flags(t)
 	return flags&(checker.TypeFlagsAny|checker.TypeFlagsUnknown|checker.TypeFlagsTypeParameter|checker.TypeFlagsIndex|checker.TypeFlagsIndexedAccess) != 0
 }
@@ -75,6 +78,9 @@ func hasIndeterminateConstituent(t *checker.Type) bool {
 
 // checkTypeCondition returns whether a type is always truthy and/or always falsy.
 func checkTypeCondition(t *checker.Type) (isTruthy bool, isFalsy bool) {
+	if t == nil {
+		return false, false
+	}
 	flags := checker.Type_flags(t)
 
 	if flags&checker.TypeFlagsNever != 0 {
@@ -172,6 +178,9 @@ func checkTypeCondition(t *checker.Type) (isTruthy bool, isFalsy bool) {
 
 func typeCanBeNullish(t *checker.Type) bool {
 	for _, part := range utils.UnionTypeParts(t) {
+		if part == nil {
+			continue
+		}
 		if checker.Type_flags(part)&(checker.TypeFlagsNull|checker.TypeFlagsUndefined|checker.TypeFlagsVoid) != 0 {
 			return true
 		}
@@ -181,6 +190,9 @@ func typeCanBeNullish(t *checker.Type) bool {
 
 func typeCanBeNull(t *checker.Type) bool {
 	for _, part := range utils.UnionTypeParts(t) {
+		if part == nil {
+			continue
+		}
 		if checker.Type_flags(part)&checker.TypeFlagsNull != 0 {
 			return true
 		}
@@ -190,6 +202,9 @@ func typeCanBeNull(t *checker.Type) bool {
 
 func typeCanBeUndefined(t *checker.Type) bool {
 	for _, part := range utils.UnionTypeParts(t) {
+		if part == nil {
+			continue
+		}
 		if checker.Type_flags(part)&(checker.TypeFlagsUndefined|checker.TypeFlagsVoid) != 0 {
 			return true
 		}
@@ -199,6 +214,9 @@ func typeCanBeUndefined(t *checker.Type) bool {
 
 func typeHasNonNullishFalsyPotential(t *checker.Type) bool {
 	for _, part := range utils.UnionTypeParts(t) {
+		if part == nil {
+			continue
+		}
 		flags := checker.Type_flags(part)
 		if flags&checker.TypeFlagsNever != 0 {
 			continue
@@ -222,7 +240,13 @@ func typeHasNonNullishFalsyPotential(t *checker.Type) bool {
 
 // classifyOrIdentityFallback detects identity-preserving fallbacks like `|| ''` or `|| false`.
 func classifyOrIdentityFallback(rhs *ast.Node) orIdentityFallbackKind {
+	if rhs == nil {
+		return orIdentityFallbackNone
+	}
 	rhs = ast.SkipParentheses(rhs)
+	if rhs == nil {
+		return orIdentityFallbackNone
+	}
 	switch rhs.Kind {
 	case ast.KindFalseKeyword:
 		return orIdentityFallbackFalse
@@ -242,6 +266,9 @@ func classifyOrIdentityFallback(rhs *ast.Node) orIdentityFallbackKind {
 // the value (e.g. `stringVar || ''` — when stringVar is falsy it's already '').
 func typeIsIdentityNoopForOrFallback(t *checker.Type, fallback orIdentityFallbackKind) bool {
 	for _, part := range utils.UnionTypeParts(t) {
+		if part == nil {
+			continue
+		}
 		flags := checker.Type_flags(part)
 		if flags&checker.TypeFlagsNever != 0 {
 			continue
@@ -274,7 +301,13 @@ func typeIsIdentityNoopForOrFallback(t *checker.Type, fallback orIdentityFallbac
 }
 
 func isUndefinedLikeNode(node *ast.Node) bool {
+	if node == nil {
+		return false
+	}
 	node = ast.SkipParentheses(node)
+	if node == nil {
+		return false
+	}
 	if utils.IsUndefinedIdentifier(node) {
 		return true
 	}
@@ -316,7 +349,13 @@ func buildRemoveFallbackFix(ctx rule.RuleContext, binExpr *ast.BinaryExpression)
 }
 
 func getStableTypeForAnalysis(ctx rule.RuleContext, node *ast.Node) *checker.Type {
+	if node == nil {
+		return nil
+	}
 	t := ctx.TypeChecker.GetTypeAtLocation(node)
+	if t == nil {
+		return nil
+	}
 	constraint, isTypeParameter := utils.GetConstraintInfo(ctx.TypeChecker, t)
 	if isTypeParameter {
 		if constraint == nil {

@@ -48,8 +48,18 @@ var AwaitThenableRule = rule.Rule{
 	Run: func(ctx rule.RuleContext, options any) rule.RuleListeners {
 		return rule.RuleListeners{
 			ast.KindAwaitExpression: func(node *ast.Node) {
-				awaitArgument := node.AsAwaitExpression().Expression
+				if node == nil {
+					return
+				}
+				awaitExpr := node.AsAwaitExpression()
+				if awaitExpr == nil || awaitExpr.Expression == nil {
+					return
+				}
+				awaitArgument := awaitExpr.Expression
 				awaitArgumentType := ctx.TypeChecker.GetTypeAtLocation(awaitArgument)
+				if awaitArgumentType == nil {
+					return
+				}
 				certainty := utils.NeedsToBeAwaited(ctx.TypeChecker, awaitArgument, awaitArgumentType)
 
 				if certainty == utils.TypeAwaitableNever {
@@ -65,17 +75,26 @@ var AwaitThenableRule = rule.Rule{
 				}
 			},
 			ast.KindForOfStatement: func(node *ast.Node) {
+				if node == nil {
+					return
+				}
 				stmt := node.AsForInOrOfStatement()
-				if stmt.AwaitModifier == nil {
+				if stmt == nil || stmt.AwaitModifier == nil {
+					return
+				}
+				if stmt.Expression == nil {
 					return
 				}
 
 				exprType := ctx.TypeChecker.GetTypeAtLocation(stmt.Expression)
-				if utils.IsTypeAnyType(exprType) {
+				if exprType == nil || utils.IsTypeAnyType(exprType) {
 					return
 				}
 
 				for _, typePart := range utils.UnionTypeParts(exprType) {
+					if typePart == nil {
+						continue
+					}
 					if utils.GetWellKnownSymbolPropertyOfType(typePart, "asyncIterator", ctx.TypeChecker) != nil {
 						return
 					}
@@ -97,11 +116,14 @@ var AwaitThenableRule = rule.Rule{
 				)
 			},
 			ast.KindVariableDeclarationList: func(node *ast.Node) {
-				if !ast.IsVarAwaitUsing(node) {
+				if node == nil || !ast.IsVarAwaitUsing(node) {
 					return
 				}
 
 				declaration := node.AsVariableDeclarationList()
+				if declaration == nil {
+					return
+				}
 			DeclaratorLoop:
 				for _, declarator := range declaration.Declarations.Nodes {
 					init := declarator.Initializer()
@@ -109,11 +131,14 @@ var AwaitThenableRule = rule.Rule{
 						continue
 					}
 					initType := ctx.TypeChecker.GetTypeAtLocation(init)
-					if utils.IsTypeAnyType(initType) {
+					if initType == nil || utils.IsTypeAnyType(initType) {
 						continue
 					}
 
 					for _, typePart := range utils.UnionTypeParts(initType) {
+						if typePart == nil {
+							continue
+						}
 						if utils.GetWellKnownSymbolPropertyOfType(typePart, "asyncDispose", ctx.TypeChecker) != nil {
 							continue DeclaratorLoop
 						}

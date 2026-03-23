@@ -33,7 +33,13 @@ var NoUnhandledErrorRule = rule.Rule{
 		return rule.RuleListeners{
 			ast.KindExpressionStatement: func(node *ast.Node) {
 				exprStatement := node.AsExpressionStatement()
+				if exprStatement == nil || exprStatement.Expression == nil {
+					return
+				}
 				expression := ast.SkipParentheses(exprStatement.Expression)
+				if expression == nil {
+					return
+				}
 
 				// void expressions are intentional discards, skip them
 				if ast.IsVoidExpression(expression) {
@@ -43,7 +49,14 @@ var NoUnhandledErrorRule = rule.Rule{
 				// only check call expressions and await expressions wrapping calls
 				innerExpr := expression
 				if ast.IsAwaitExpression(innerExpr) {
-					innerExpr = ast.SkipParentheses(innerExpr.Expression())
+					inner := innerExpr.Expression()
+					if inner == nil {
+						return
+					}
+					innerExpr = ast.SkipParentheses(inner)
+					if innerExpr == nil {
+						return
+					}
 				}
 				if !ast.IsCallExpression(innerExpr) {
 					return
@@ -51,6 +64,9 @@ var NoUnhandledErrorRule = rule.Rule{
 
 				// get the type of the full expression (after await if present)
 				t := ctx.TypeChecker.GetTypeAtLocation(expression)
+				if t == nil {
+					return
+				}
 
 				// skip void, undefined, and never — these have no meaningful value
 				if utils.IsTypeFlagSet(t, checker.TypeFlagsVoid|checker.TypeFlagsVoidLike|checker.TypeFlagsUndefined|checker.TypeFlagsNever) {
@@ -59,6 +75,9 @@ var NoUnhandledErrorRule = rule.Rule{
 
 				// check if any union constituent is Error-like (Error | T → report)
 				for _, part := range utils.UnionTypeParts(t) {
+					if part == nil {
+						continue
+					}
 					if utils.IsErrorLike(ctx.Program, ctx.TypeChecker, part) {
 						ctx.ReportNode(node, rule.RuleMessage{
 							Id:          "noUnhandledError",

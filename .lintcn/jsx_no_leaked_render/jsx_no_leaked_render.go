@@ -34,6 +34,9 @@ func buildLeakedRenderMessage() rule.RuleMessage {
 
 // checkLeakyType returns true if the type could leak a falsy value to JSX
 func checkLeakyType(t *checker.Type) bool {
+	if t == nil {
+		return false
+	}
 	// any type is always problematic
 	if utils.IsTypeFlagSet(t, checker.TypeFlagsAny) {
 		return true
@@ -86,6 +89,9 @@ var JsxNoLeakedRenderRule = rule.Rule{
 		return rule.RuleListeners{
 			ast.KindBinaryExpression: func(node *ast.Node) {
 				binary := node.AsBinaryExpression()
+				if binary == nil || binary.OperatorToken == nil {
+					return
+				}
 
 				// Only check && operator
 				if binary.OperatorToken.Kind != ast.KindAmpersandAmpersandToken {
@@ -98,8 +104,16 @@ var JsxNoLeakedRenderRule = rule.Rule{
 					return
 				}
 
+				if binary.Left == nil {
+					return
+				}
+
 				// Get type of left operand (resolves generics via GetBaseConstraintOfType)
 				leftType := utils.GetConstrainedTypeAtLocation(ctx.TypeChecker, binary.Left)
+
+				if leftType == nil {
+					return
+				}
 
 				// Check if type could leak (including union members)
 				if utils.TypeRecurser(leftType, func(t *checker.Type) bool {

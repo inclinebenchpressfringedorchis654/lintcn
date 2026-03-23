@@ -16,6 +16,9 @@ var NoRedundantTypeAssertionRule = rule.Rule{
 	Name: "no-redundant-type-assertion",
 	Run: func(ctx rule.RuleContext, options any) rule.RuleListeners {
 		checkAssertion := func(node *ast.Node) {
+			if node == nil {
+				return
+			}
 			// Skip `as const` assertions
 			if ast.IsConstAssertion(node) {
 				return
@@ -23,9 +26,15 @@ var NoRedundantTypeAssertionRule = rule.Rule{
 
 			expression := node.Expression()
 			typeAnnotation := node.Type()
+			if expression == nil || typeAnnotation == nil {
+				return
+			}
 
 			expressionType := ctx.TypeChecker.GetTypeAtLocation(expression)
 			assertedType := ctx.TypeChecker.GetTypeAtLocation(typeAnnotation)
+			if expressionType == nil || assertedType == nil {
+				return
+			}
 
 			// Skip any/unknown expression types — can't reason about them
 			if utils.IsTypeAnyType(expressionType) || utils.IsTypeUnknownType(expressionType) {
@@ -69,6 +78,9 @@ var NoRedundantTypeAssertionRule = rule.Rule{
 			hasUndefined := false
 			nonNullableParts := make([]*checker.Type, 0, len(expressionParts))
 			for _, part := range expressionParts {
+				if part == nil {
+					continue
+				}
 				if utils.IsTypeFlagSet(part, checker.TypeFlagsNull) {
 					hasNull = true
 				} else if utils.IsTypeFlagSet(part, checker.TypeFlagsUndefined) {

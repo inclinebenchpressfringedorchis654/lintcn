@@ -81,9 +81,15 @@ var NoFloatingPromisesRule = rule.Rule{
 		opts := utils.UnmarshalOptions[NoFloatingPromisesOptions](options, "no-floating-promises")
 
 		isHigherPrecedenceThanUnary := func(node *ast.Node) bool {
+			if node == nil {
+				return false
+			}
 			operator := ast.KindUnknown
 			if ast.IsBinaryExpression(node) {
-				operator = node.AsBinaryExpression().OperatorToken.Kind
+				binExpr := node.AsBinaryExpression()
+				if binExpr != nil && binExpr.OperatorToken != nil {
+					operator = binExpr.OperatorToken.Kind
+				}
 			}
 			nodePrecedence := ast.GetOperatorPrecedence(node.Kind, operator, ast.OperatorPrecedenceFlagsNone)
 			return nodePrecedence > ast.OperatorPrecedenceUnary
@@ -109,7 +115,13 @@ var NoFloatingPromisesRule = rule.Rule{
 			t *checker.Type,
 			matcher func(signature *checker.Signature) bool,
 		) bool {
+			if t == nil {
+				return false
+			}
 			for _, part := range utils.UnionTypeParts(t) {
+				if part == nil {
+					continue
+				}
 				if utils.Some(utils.GetCallSignatures(ctx.TypeChecker, part), matcher) {
 					return true
 				}
@@ -122,9 +134,22 @@ var NoFloatingPromisesRule = rule.Rule{
 			param *ast.Symbol,
 			node *ast.Node,
 		) bool {
-			t := checker.Checker_getApparentType(ctx.TypeChecker, ctx.TypeChecker.GetTypeOfSymbolAtLocation(param, node))
+			if param == nil || node == nil {
+				return false
+			}
+			symType := ctx.TypeChecker.GetTypeOfSymbolAtLocation(param, node)
+			if symType == nil {
+				return false
+			}
+			t := checker.Checker_getApparentType(ctx.TypeChecker, symType)
+			if t == nil {
+				return false
+			}
 
 			for _, part := range utils.UnionTypeParts(t) {
+				if part == nil {
+					continue
+				}
 				if len(utils.GetCallSignatures(ctx.TypeChecker, part)) != 0 {
 					return true
 				}
@@ -132,8 +157,11 @@ var NoFloatingPromisesRule = rule.Rule{
 			return false
 		}
 		isPromiseLike := func(node *ast.Node, t *checker.Type) bool {
-			if t == nil {
+			if t == nil && node != nil {
 				t = ctx.TypeChecker.GetTypeAtLocation(node)
+			}
+			if t == nil {
+				return false
 			}
 
 			// The highest priority is to allow anything allowlisted
@@ -146,8 +174,15 @@ var NoFloatingPromisesRule = rule.Rule{
 			}
 
 			// Otherwise, we always consider the built-in Promise to be Promise-like...
-			typeParts := utils.UnionTypeParts(checker.Checker_getApparentType(ctx.TypeChecker, t))
+			apparent := checker.Checker_getApparentType(ctx.TypeChecker, t)
+			if apparent == nil {
+				return false
+			}
+			typeParts := utils.UnionTypeParts(apparent)
 			if utils.Some(typeParts, func(typePart *checker.Type) bool {
+				if typePart == nil {
+					return false
+				}
 				return utils.IsPromiseLike(ctx.Program, ctx.TypeChecker, typePart)
 			}) {
 				return true
@@ -163,8 +198,14 @@ var NoFloatingPromisesRule = rule.Rule{
 			//
 			//   https://github.com/ajafff/tsutils/blob/49d0d31050b44b81e918eae4fbaf1dfe7b7286af/util/type.ts#L95-L125
 			for _, typePart := range typeParts {
+				if typePart == nil {
+					continue
+				}
 				then := checker.Checker_getPropertyOfType(ctx.TypeChecker, typePart, "then")
 				if then == nil {
+					continue
+				}
+				if node == nil {
 					continue
 				}
 
@@ -181,18 +222,33 @@ var NoFloatingPromisesRule = rule.Rule{
 			return false
 		}
 		isPromiseArray := func(node *ast.Node, t *checker.Type) bool {
+			if t == nil {
+				return false
+			}
 			for _, typePart := range utils.UnionTypeParts(t) {
+				if typePart == nil {
+					continue
+				}
 				apparent := checker.Checker_getApparentType(ctx.TypeChecker, typePart)
+				if apparent == nil {
+					continue
+				}
 
 				if checker.Checker_isArrayType(ctx.TypeChecker, apparent) {
-					arrayType := checker.Checker_getTypeArguments(ctx.TypeChecker, apparent)[0]
-					if isPromiseLike(node, arrayType) {
+					typeArgs := checker.Checker_getTypeArguments(ctx.TypeChecker, apparent)
+					if len(typeArgs) == 0 || typeArgs[0] == nil {
+						continue
+					}
+					if isPromiseLike(node, typeArgs[0]) {
 						return true
 					}
 				}
 
 				if checker.IsTupleType(apparent) {
 					for _, tupleElementType := range checker.Checker_getTypeArguments(ctx.TypeChecker, apparent) {
+						if tupleElementType == nil {
+							continue
+						}
 						if isPromiseLike(node, tupleElementType) {
 							return true
 						}
@@ -232,11 +288,15 @@ var NoFloatingPromisesRule = rule.Rule{
 		}
 
 		isAsyncIife := func(node *ast.ExpressionStatement) bool {
-			if !ast.IsCallExpression(node.Expression) {
+			if node == nil || node.Expression == nil || !ast.IsCallExpression(node.Expression) {
+				return false
+			}
+			callExpr := node.Expression.AsCallExpression()
+			if callExpr == nil || callExpr.Expression == nil {
 				return false
 			}
 
-			callee := ast.SkipParentheses(node.Expression.AsCallExpression().Expression)
+			callee := ast.SkipParentheses(callExpr.Expression)
 
 			return ast.IsArrowFunction(callee) || ast.IsFunctionExpression(callee)
 		}
@@ -245,20 +305,23 @@ var NoFloatingPromisesRule = rule.Rule{
 			return len(utils.GetCallSignatures(ctx.TypeChecker, ctx.TypeChecker.GetTypeAtLocation(rejectionHandler))) > 0
 		}
 
-		var isUnhandledPromise func(
+		// Depth-limited to prevent stack overflow on deeply nested expressions.
+		const maxRecursionDepth = 128
+		var isUnhandledPromiseImpl func(node *ast.Node, depth int) (bool, bool, bool)
+		isUnhandledPromise := func(node *ast.Node) (bool, bool, bool) {
+			return isUnhandledPromiseImpl(node, 0)
+		}
+		isUnhandledPromiseImpl = func(
 			node *ast.Node,
-		) (
-			bool, // isUnhandled
-			bool, // nonFunctionHandler
-			bool, // promiseArray
-		)
-		isUnhandledPromise = func(
-			node *ast.Node,
+			depth int,
 		) (
 			bool, // isUnhandled
 			bool, // nonFunctionHandler
 			bool, // promiseArray
 		) {
+			if node == nil || depth > maxRecursionDepth {
+				return false, false, false
+			}
 			if ast.IsAssignmentExpression(node, false) {
 				return false, false, false
 			}
@@ -266,20 +329,27 @@ var NoFloatingPromisesRule = rule.Rule{
 			// First, check expressions whose resulting types may not be promise-like
 			if ast.IsCommaExpression(node) {
 				expr := node.AsBinaryExpression()
+				if expr == nil {
+					return false, false, false
+				}
 				// Any child in a comma expression could return a potentially unhandled
 				// promise, so we check them all regardless of whether the final returned
 				// value is promise-like.
-				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromise(expr.Left)
+				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromiseImpl(expr.Left, depth+1)
 				if isUnhandled {
 					return isUnhandled, nonFunctionHandler, promiseArray
 				}
-				return isUnhandledPromise(expr.Right)
+				return isUnhandledPromiseImpl(expr.Right, depth+1)
 			}
 
 			if !opts.IgnoreVoid && ast.IsVoidExpression(node) {
+				inner := node.Expression()
+				if inner == nil {
+					return false, false, false
+				}
 				// Similarly, a `void` expression always returns undefined, so we need to
 				// see what's inside it without checking the type of the overall expression.
-				return isUnhandledPromise(node.Expression())
+				return isUnhandledPromiseImpl(inner, depth+1)
 			}
 
 			// Check the type. At this point it can't be unhandled if it isn't a promise
@@ -330,7 +400,11 @@ var NoFloatingPromisesRule = rule.Rule{
 					// `x.finally()` is transparent to resolution of the promise, so check `x`.
 					// ("object" in this context is the `x` in `x.finally()`)
 					if methodName == "finally" {
-						return isUnhandledPromise(callee.Expression())
+						inner := callee.Expression()
+						if inner == nil {
+							return true, false, false
+						}
+						return isUnhandledPromiseImpl(inner, depth+1)
 					}
 				}
 
@@ -340,22 +414,28 @@ var NoFloatingPromisesRule = rule.Rule{
 
 			if node.Kind == ast.KindConditionalExpression {
 				expr := node.AsConditionalExpression()
+				if expr == nil {
+					return true, false, false
+				}
 				// We must be getting the promise-like value from one of the branches of the
 				// ternary. Check them directly.
-				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromise(expr.WhenFalse)
+				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromiseImpl(expr.WhenFalse, depth+1)
 				if isUnhandled {
 					return isUnhandled, nonFunctionHandler, promiseArray
 				}
-				return isUnhandledPromise(expr.WhenTrue)
+				return isUnhandledPromiseImpl(expr.WhenTrue, depth+1)
 			}
 
 			if ast.IsLogicalOrCoalescingBinaryExpression(node) {
 				expr := node.AsBinaryExpression()
-				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromise(expr.Left)
+				if expr == nil {
+					return true, false, false
+				}
+				isUnhandled, nonFunctionHandler, promiseArray := isUnhandledPromiseImpl(expr.Left, depth+1)
 				if isUnhandled {
 					return isUnhandled, nonFunctionHandler, promiseArray
 				}
-				return isUnhandledPromise(expr.Right)
+				return isUnhandledPromiseImpl(expr.Right, depth+1)
 			}
 
 			// Anything else is unhandled.
@@ -364,7 +444,13 @@ var NoFloatingPromisesRule = rule.Rule{
 
 		return rule.RuleListeners{
 			ast.KindExpressionStatement: func(node *ast.Node) {
+				if node == nil {
+					return
+				}
 				exprStatement := node.AsExpressionStatement()
+				if exprStatement == nil || exprStatement.Expression == nil {
+					return
+				}
 
 				if opts.IgnoreIIFE && isAsyncIife(exprStatement) {
 					return

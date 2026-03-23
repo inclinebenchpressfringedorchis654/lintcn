@@ -26,6 +26,9 @@ var NoArrayDeleteRule = rule.Rule{
 	Name: "no-array-delete",
 	Run: func(ctx rule.RuleContext, options any) rule.RuleListeners {
 		isUnderlyingTypeArray := func(t *checker.Type) bool {
+			if t == nil {
+				return false
+			}
 			if utils.IsTypeFlagSet(t, checker.TypeFlagsUnion) {
 				for _, t := range t.Types() {
 					if !checker.Checker_isArrayOrTupleType(ctx.TypeChecker, t) {
@@ -49,20 +52,38 @@ var NoArrayDeleteRule = rule.Rule{
 
 		return rule.RuleListeners{
 			ast.KindDeleteExpression: func(node *ast.Node) {
-				if node.Kind != ast.KindDeleteExpression {
+				if node == nil || node.Kind != ast.KindDeleteExpression {
 					return
 				}
-				deleteExpression := ast.SkipParentheses(node.AsDeleteExpression().Expression)
+				delExpr := node.AsDeleteExpression()
+				if delExpr == nil || delExpr.Expression == nil {
+					return
+				}
+				deleteExpression := ast.SkipParentheses(delExpr.Expression)
+				if deleteExpression == nil {
+					return
+				}
 
 				if !ast.IsElementAccessExpression(deleteExpression) {
 					return
 				}
 
 				expression := deleteExpression.AsElementAccessExpression()
+				if expression == nil || expression.Expression == nil {
+					return
+				}
 
 				argType := utils.GetConstrainedTypeAtLocation(ctx.TypeChecker, expression.Expression)
+				if argType == nil {
+					return
+				}
 
 				if !isUnderlyingTypeArray(argType) {
+					return
+				}
+
+				if expression.ArgumentExpression == nil {
+					ctx.ReportNode(node, buildNoArrayDeleteMessage())
 					return
 				}
 
