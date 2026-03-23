@@ -57,7 +57,7 @@ function parseGitHubUrl(url: string): ParsedGitHubUrl | null {
   const subPath = rest.join('/')
 
   if (kind === 'tree') {
-    if (!ref) return null
+    if (!ref || !subPath) return null
     return { owner, repo, ref, dirPath: subPath }
   }
 
@@ -164,11 +164,12 @@ function ensureSourceComment(content: string, sourceUrl: string): string {
 }
 
 /** Download a single rule folder into .lintcn/{folderName}/.
- *  Overwrites existing folder if present. */
+ *  Overwrites existing folder if present.
+ *  Returns true if the rule was added, false if skipped (no .go files). */
 async function downloadSingleRule(
   owner: string, repo: string, ref: string, dirPath: string,
   lintcnDir: string, sourceUrl: string,
-): Promise<void> {
+): Promise<boolean> {
   const folderName = path.posix.basename(dirPath)
   const items = await listGitHubFolder(owner, repo, dirPath, ref)
 
@@ -178,7 +179,7 @@ async function downloadSingleRule(
 
   if (filesToFetch.length === 0) {
     console.warn(`  Skipping ${folderName}/ — no .go files found`)
-    return
+    return false
   }
 
   const ruleDir = path.join(lintcnDir, folderName)
@@ -202,6 +203,7 @@ async function downloadSingleRule(
   }
 
   console.log(`  Added ${folderName}/ (${filesToFetch.length} files)`)
+  return true
 }
 
 /** Ensure tsgolint source, refresh symlink, regenerate go.work/go.mod. */
@@ -242,13 +244,19 @@ async function addLintcnFolder(
 
   const lintcnDir = getLintcnDir()
 
+  let added = 0
   for (const dir of ruleDirs) {
     const ruleDirPath = lintcnPath ? `${lintcnPath}/${dir.name}` : dir.name
-    await downloadSingleRule(owner, repo, ref, ruleDirPath, lintcnDir, sourceUrl)
+    const ok = await downloadSingleRule(owner, repo, ref, ruleDirPath, lintcnDir, sourceUrl)
+    if (ok) added++
+  }
+
+  if (added === 0) {
+    throw new Error(`No rule folders with .go files found in ${lintcnPath}.`)
   }
 
   await finalizeLintcnDir(lintcnDir)
-  console.log(`\nDone — added ${ruleDirs.length} rule(s) from ${owner}/${repo}`)
+  console.log(`\nDone — added ${added} rule(s) from ${owner}/${repo}`)
 }
 
 export async function addRule(url: string): Promise<void> {
@@ -286,14 +294,17 @@ export async function addRule(url: string): Promise<void> {
   // For blob/raw URLs, dirPath already points at the parent folder
   // For tree URLs, dirPath is the folder itself — but it might be a .lintcn/ collection
   if (!fileName) {
-    // Tree URL — check if this is a collection (has subdirectories) or a single rule
     const items = await listGitHubFolder(owner, repo, dirPath, ref)
-    const subdirs = items.filter((item) => {
-      return item.type === 'dir' && !LINTCN_GENERATED.has(item.name) && !item.name.startsWith('.')
+    const hasGoFiles = items.some((i) => i.type === 'file' && i.name.endsWith('.go'))
+    const hasCandidateSubdirs = items.some((i) => {
+      return i.type === 'dir' && !LINTCN_GENERATED.has(i.name) && !i.name.startsWith('.')
     })
+    const isLintcnDir = path.posix.basename(dirPath) === '.lintcn'
 
-    if (subdirs.length > 0) {
-      // Looks like a collection of rules (e.g. .lintcn/ or rules/)
+    // Collection if: explicitly .lintcn/, or has subdirs but no .go files at root.
+    // A single rule folder with testdata/ subdirs won't be misdetected because
+    // it also has .go files at root.
+    if (isLintcnDir || (!hasGoFiles && hasCandidateSubdirs)) {
       await addLintcnFolder(owner, repo, ref, dirPath, url)
       return
     }
@@ -317,6 +328,9 @@ export async function addRule(url: string): Promise<void> {
     )
   }
 
-  await downloadSingleRule(owner, repo, ref, dirPath, lintcnDir, url)
+  const ok = await downloadSingleRule(owner, repo, ref, dirPath, lintcnDir, url)
+  if (!ok) {
+    throw new Error(`No .go files found in ${dirPath}. Is this a rule folder?`)
+  }
   await finalizeLintcnDir(lintcnDir)
 }
