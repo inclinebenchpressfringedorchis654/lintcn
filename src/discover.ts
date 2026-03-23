@@ -100,8 +100,8 @@ export function discoverRules(lintcnDir: string): RuleMetadata[] {
       rules.push({
         name: displayName,
         goRuleName,
-        description: meta.description || '',
-        source: meta.source || '',
+        description: meta.description,
+        source: meta.source,
         severity,
         varName,
         packageName: entry.name,
