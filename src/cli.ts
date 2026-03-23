@@ -43,12 +43,16 @@ cli
 cli
   .command('lint', 'Build custom tsgolint binary and run it against the project')
   .option('--rebuild', 'Force rebuild even if cached binary exists')
+  .option('--fix', 'Automatically fix violations')
   .option('--tsconfig <path>', 'Path to tsconfig.json')
   .option('--list-files', 'List matched files')
   .option('--tsgolint-version [version]', 'Override the pinned tsgolint version (tag or commit). For testing unreleased tsgolint versions.')
   .action(async (options) => {
     const tsgolintVersion = (options.tsgolintVersion as string) || DEFAULT_TSGOLINT_VERSION
     const passthroughArgs: string[] = []
+    if (options.fix) {
+      passthroughArgs.push('--fix')
+    }
     if (options.tsconfig) {
       passthroughArgs.push('--tsconfig', options.tsconfig as string)
     }
