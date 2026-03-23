@@ -94,8 +94,33 @@ Add `// lintcn:` comments at the top for CLI metadata:
 
 ```go
 // lintcn:name my-rule
+// lintcn:severity warn
 // lintcn:description Disallow doing X without checking Y
 ```
+
+Available directives:
+
+| Directive            | Values          | Default     | Description          |
+| -------------------- | --------------- | ----------- | -------------------- |
+| `lintcn:name`        | kebab-case      | folder name | Rule display name    |
+| `lintcn:severity`    | `error`, `warn` | `error`     | Severity level       |
+| `lintcn:description` | text            | empty       | One-line description |
+| `lintcn:source`      | URL             | empty       | Original source URL  |
+
+### Warning Severity
+
+Rules with `// lintcn:severity warn`:
+
+- Don't fail CI (exit code 0)
+- Only show for git-changed/untracked files — unchanged files are skipped
+- Use `--all-warnings` to see warnings across the whole codebase
+
+Warnings are for rules that guide agents writing new code without flooding
+the output with violations from the rest of the codebase. Examples:
+
+- "Remove `as any`, the actual type is `string`"
+- "This `||` fallback is unreachable, the left side is never nullish"
+- "Unhandled Error return value, assign to a variable and check it"
 
 ### Package Name
 
@@ -107,16 +132,16 @@ The exported variable name must match the pattern `var XxxRule = rule.Rule{...}`
 
 `ctx rule.RuleContext` provides:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `SourceFile` | `*ast.SourceFile` | Current file being linted |
-| `Program` | `*compiler.Program` | Full TypeScript program |
-| `TypeChecker` | `*checker.Checker` | TypeScript type checker |
-| `ReportNode` | `func(node, msg)` | Report error on a node |
-| `ReportNodeWithFixes` | `func(node, msg, fixesFn)` | Report with auto-fixes |
-| `ReportNodeWithSuggestions` | `func(node, msg, suggFn)` | Report with suggestions |
-| `ReportRange` | `func(range, msg)` | Report on a text range |
-| `ReportDiagnostic` | `func(diagnostic)` | Report with labeled ranges |
+| Field                       | Type                       | Description                |
+| --------------------------- | -------------------------- | -------------------------- |
+| `SourceFile`                | `*ast.SourceFile`          | Current file being linted  |
+| `Program`                   | `*compiler.Program`        | Full TypeScript program    |
+| `TypeChecker`               | `*checker.Checker`         | TypeScript type checker    |
+| `ReportNode`                | `func(node, msg)`          | Report error on a node     |
+| `ReportNodeWithFixes`       | `func(node, msg, fixesFn)` | Report with auto-fixes     |
+| `ReportNodeWithSuggestions` | `func(node, msg, suggFn)`  | Report with suggestions    |
+| `ReportRange`               | `func(range, msg)`         | Report on a text range     |
+| `ReportDiagnostic`          | `func(diagnostic)`         | Report with labeled ranges |
 
 ## AST Node Listeners
 
@@ -688,6 +713,56 @@ go test -v ./...              # all tests
 go test -v -run TestMyRule    # specific test
 go test -count=1 ./...        # bypass test cache
 ```
+
+### Snapshots
+
+Tests generate snapshot files with the full diagnostic output — message text,
+annotated source code, and underlined ranges. Run with `UPDATE_SNAPS=true` to
+create or update them:
+
+```bash
+# From the build workspace (found via `lintcn build` output path)
+UPDATE_SNAPS=true go test -run TestMyRule -count=1 ./rules/my_rule/
+```
+
+Snapshots are written to `internal/rule_tester/__snapshots__/{rule-name}.snap`
+inside the cached tsgolint source. Copy them into your rule folder for reference:
+
+```
+.lintcn/my_rule/__snapshots__/my-rule.snap
+```
+
+**Always read the snapshot after writing tests** — it shows the exact messages
+your rule produces, which is how you verify the output makes sense. Example
+snapshot from `no-type-assertion`:
+
+```
+[TestNoTypeAssertion/invalid-7 - 1]
+Diagnostic 1: typeAssertion (4:14 - 4:22)
+Message: Type assertion `as User ({ name: string; age: number })`.
+  The expression type is `Error | User`. Try removing the assertion
+  or narrowing the type instead.
+   3 |             declare const x: User | Error;
+   4 |             const y = x as User;
+     |                       ~~~~~~~~~
+   5 |
+---
+
+[TestNoTypeAssertion/invalid-8 - 1]
+Diagnostic 1: typeAssertion (4:14 - 4:24)
+Message: Type assertion `as Config ({ host: string; port: number })`.
+  The expression type is `Config | null`. Try removing the assertion
+  or narrowing the type instead.
+   3 |             declare const x: Config | null;
+   4 |             const y = x as Config;
+     |                       ~~~~~~~~~~~
+   5 |
+---
+```
+
+This shows: the message ID, position, full description text, and the source
+code with the flagged range underlined. Use this to verify your error messages
+are helpful and include enough type information for agents to act on.
 
 ## Complete Rule Example: no-unhandled-error
 

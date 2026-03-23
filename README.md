@@ -140,16 +140,65 @@ This catches code like:
 
 ```typescript
 // error — result discarded, Error not handled
-getUser("id")           // returns Error | User
-await fetchData("/api") // returns Promise<Error | Data>
+getUser("id"); // returns Error | User
+await fetchData("/api"); // returns Promise<Error | Data>
 
 // ok — result is checked
-const user = getUser("id")
-if (user instanceof Error) return user
+const user = getUser("id");
+if (user instanceof Error) return user;
 
 // ok — explicitly discarded
-void getUser("id")
+void getUser("id");
 ```
+
+## Warning severity
+
+Rules can be configured as **warnings** instead of errors:
+
+- **Don't fail CI** — warnings produce exit code 0
+- **Only shown for git-changed files** — warnings for unchanged files are silently skipped
+
+This lets you adopt new rules gradually. In a large codebase, enabling a rule as an error means hundreds of violations at once. As a warning, you only see violations in files you're actively changing — fixing issues in new code without blocking the build.
+
+### Configuring a rule as a warning
+
+Add `// lintcn:severity warn` to the rule's Go file:
+
+```go
+// lintcn:name no-unhandled-error
+// lintcn:severity warn
+// lintcn:description Disallow discarding Error-typed return values
+```
+
+Rules without `// lintcn:severity` default to `error`.
+
+### When warnings are shown
+
+By default, `lintcn lint` runs `git diff` to find changed and untracked files. Warnings are only printed for files in that list:
+
+```bash
+# Warnings only for files in git diff (default)
+npx lintcn lint
+
+# Warnings for ALL files, ignoring git diff
+npx lintcn lint --all-warnings
+```
+
+| Scenario                           | Warnings shown?   |
+| ---------------------------------- | ----------------- |
+| File is in `git diff` or untracked | Yes               |
+| File is committed and unchanged    | No                |
+| `--all-warnings` flag is passed    | Yes, all files    |
+| Git is not installed or not a repo | No warnings shown |
+| Clean git tree (no changes)        | No warnings shown |
+
+### Workflow
+
+1. Add a new rule with `lintcn add`
+2. Set it to `// lintcn:severity warn` in the Go source
+3. Run `lintcn lint` — only see warnings in files you're currently editing
+4. Fix warnings as you touch files naturally
+5. Once the codebase is clean, change to `// lintcn:severity error` (or remove the directive) to enforce it
 
 ## Version pinning
 
