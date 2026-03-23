@@ -181,4 +181,20 @@ var invalidCases = []rule_tester.InvalidTestCase{
 			{MessageId: "inOperator"},
 		},
 	},
+
+	// --- Template literal key (NoSubstitutionTemplateLiteral) ---
+	// General case with template literal
+	{
+		Code: "interface User { name: string }\ndeclare const user: User;\nif (`name` in user) { console.log(user.name); }",
+		Errors: []rule_tester.InvalidTestCaseError{
+			{MessageId: "inOperator"},
+		},
+	},
+	// Union narrowing with template literal
+	{
+		Code: "type Cat = { kind: 'cat'; meow(): void }\ntype Dog = { kind: 'dog'; bark(): void }\ndeclare const animal: Cat | Dog;\nif (`meow` in animal) { }",
+		Errors: []rule_tester.InvalidTestCaseError{
+			{MessageId: "inOperatorUnionNarrowing"},
+		},
+	},
 }

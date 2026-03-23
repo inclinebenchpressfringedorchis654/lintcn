@@ -52,3 +52,11 @@ Message: Property `shared` already exists in type `A | B | C`. This `in` check i
      |                 ~~~~~~~~~~~~~
    7 |         
 ---
+
+[TestNoRedundantInCheck/invalid-6 - 1]
+Diagnostic 1: redundantInCheck (3:5 - 3:18)
+Message: Property `name` already exists in type `User`. This `in` check is redundant because the property is always present.
+   2 | declare const user: User;
+   3 | if (`name` in user) { console.log(user.name); }
+     |     ~~~~~~~~~~~~~~
+---

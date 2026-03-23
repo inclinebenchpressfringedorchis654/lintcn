@@ -97,3 +97,19 @@ Message: `in` operator check on type `Cat | Dog (Cat ({ name: string; meow: () =
      |                 ~~~~~~~~~~~~~~~~
    6 |         
 ---
+
+[TestNoInOperator/invalid-11 - 1]
+Diagnostic 1: inOperator (3:5 - 3:18)
+Message: `in` operator check on type `User ({ name: string })`. The `in` operator is usually an escape hatch. Consider using a type guard, discriminated union, or proper type narrowing instead.
+   2 | declare const user: User;
+   3 | if (`name` in user) { console.log(user.name); }
+     |     ~~~~~~~~~~~~~~
+---
+
+[TestNoInOperator/invalid-12 - 1]
+Diagnostic 1: inOperatorUnionNarrowing (4:5 - 4:20)
+Message: `in` operator on union type `Cat | Dog (Cat ({ kind: "cat"; meow: () => void }) | Dog ({ kind: "dog"; bark: () => void }))`. Property `meow` exists in Cat but not in Dog. Consider using a discriminant property (e.g. a `kind` or `type` field) to narrow the union instead of `in`.
+   3 | declare const animal: Cat | Dog;
+   4 | if (`meow` in animal) { }
+     |     ~~~~~~~~~~~~~~~~
+---

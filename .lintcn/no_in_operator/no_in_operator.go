@@ -220,9 +220,9 @@ var NoInOperatorRule = rule.Rule{
 
 				rightTypeStr := formatType(ctx.TypeChecker, ctx.Program, rightType)
 
-				// Get property name from left side (if string literal)
+				// Get property name from left side (if static string key)
 				propName := ""
-				if left.Kind == ast.KindStringLiteral {
+				if left.Kind == ast.KindStringLiteral || left.Kind == ast.KindNoSubstitutionTemplateLiteral {
 					propName = left.Text()
 				}
 

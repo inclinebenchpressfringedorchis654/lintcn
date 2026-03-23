@@ -55,10 +55,11 @@ var validCases = []rule_tester.ValidTestCase{
 		declare const key: string;
 		if (key in user) { console.log('has key'); }
 	`},
-	// Union with null — in check is on nullable type directly (not after && guard)
+	// Union with object — one member lacks the property, valid narrowing
 	{Code: `
 		interface User { name: string }
-		declare function check(user: User | null): void;
+		declare const x: User | object;
+		if ('name' in x) { console.log('has name'); }
 	`},
 	// Property in some but not all union members
 	{Code: `
@@ -160,6 +161,13 @@ var invalidCases = []rule_tester.InvalidTestCase{
 			declare const x: A | B | C;
 			if ('shared' in x) { console.log(x.shared); }
 		`,
+		Errors: []rule_tester.InvalidTestCaseError{
+			{MessageId: "redundantInCheck"},
+		},
+	},
+	// Template literal key (NoSubstitutionTemplateLiteral)
+	{
+		Code: "interface User { name: string }\ndeclare const user: User;\nif (`name` in user) { console.log(user.name); }",
 		Errors: []rule_tester.InvalidTestCaseError{
 			{MessageId: "redundantInCheck"},
 		},

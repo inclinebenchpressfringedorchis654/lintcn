@@ -87,8 +87,8 @@ var NoRedundantInCheckRule = rule.Rule{
 					return
 				}
 
-				// Only handle string literal keys — we need the exact property name
-				if left.Kind != ast.KindStringLiteral {
+				// Only handle static string keys — we need the exact property name
+				if left.Kind != ast.KindStringLiteral && left.Kind != ast.KindNoSubstitutionTemplateLiteral {
 					return
 				}
 				propName := left.Text()
