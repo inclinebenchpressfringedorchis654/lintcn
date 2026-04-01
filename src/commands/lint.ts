@@ -4,7 +4,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawn } from 'node:child_process'
-import { requireLintcnDir } from '../paths.ts'
+import { requireLintcnDir, findLintcnDir } from '../paths.ts'
 import { discoverRules, type RuleMetadata } from '../discover.ts'
 import { generateBuildWorkspace, generateEditorGoFiles } from '../codegen.ts'
 import { ensureTsgolintSource, validateVersion, cachedBinaryExists, getBinaryPath, getBuildDir, getBinDir } from '../cache.ts'
@@ -107,6 +107,11 @@ export async function lint({
   passthroughArgs: string[]
   allWarnings: boolean
 }): Promise<number> {
+  if (!findLintcnDir()) {
+    console.log('No .lintcn/ directory found. Run `lintcn add <url>` to add rules.')
+    return 0
+  }
+
   const binaryPath = await buildBinary({ rebuild, tsgolintVersion })
 
   // Discover rules to inject --warn flags for warning-severity rules.

@@ -1,3 +1,9 @@
+## 0.7.1
+
+1. **`lintcn lint` / `lintcn build` exit 0 when `.lintcn/` not found** — instead of throwing and exiting 1, they now print a helpful message and exit cleanly. Useful when running lintcn in CI on repos that haven't set up rules yet.
+
+2. **Snapshot files land in `.lintcn/<rule>/__snapshots__/`** — bumped tsgolint to `518fa0d`. Rule tests now write snapshots relative to the test package directory instead of the cached tsgolint source, so they're committed alongside your rule and survive `lintcn clean`. Set `TSGOLINT_SNAPSHOT_CWD=true` when running `go test` to get this behavior.
+
 ## 0.7.0
 
 1. **`lintcn lint --fix`** — automatically apply fixes in-place. Collects diagnostics per file, applies fixes via the Go runner, and only reports what couldn't be auto-fixed:

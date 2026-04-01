@@ -11,6 +11,7 @@ import { listRules } from './commands/list.ts'
 import { removeRule } from './commands/remove.ts'
 import { clean } from './commands/clean.ts'
 import { DEFAULT_TSGOLINT_VERSION } from './cache.ts'
+import { findLintcnDir } from './paths.ts'
 
 const require = createRequire(import.meta.url)
 const packageJson = require('../package.json') as { version: string }
@@ -81,6 +82,10 @@ cli
   .option('--rebuild', 'Force rebuild even if cached binary exists')
   .option('--tsgolint-version [version]', 'Override the pinned tsgolint version (tag or commit). For testing unreleased tsgolint versions.')
   .action(async (options) => {
+    if (!findLintcnDir()) {
+      console.log('No .lintcn/ directory found. Run `lintcn add <url>` to add rules.')
+      return
+    }
     const tsgolintVersion = (options.tsgolintVersion as string) || DEFAULT_TSGOLINT_VERSION
     const binaryPath = await buildBinary({ rebuild: !!options.rebuild, tsgolintVersion })
     console.log(binaryPath)
