@@ -1,106 +1,140 @@
 // lintcn:name no-tiny-wrapper-function
 // lintcn:severity warn
-// lintcn:description Warn on functions and methods with three or fewer lines of code that only exist to call other functions.
+// lintcn:description Warn on functions and methods that only forward directly to another call.
 
-// Package no_tiny_wrapper_function warns on tiny wrapper functions and methods
-// so agents inline direct calls instead of adding throwaway abstractions.
+// Package no_tiny_wrapper_function warns on direct pass-through wrapper
+// functions and methods so agents inline direct calls instead of adding
+// throwaway abstractions.
 package no_tiny_wrapper_function
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/microsoft/typescript-go/shim/ast"
 	"github.com/typescript-eslint/tsgolint/internal/rule"
 )
 
-const maxWrapperLines = 3
-
-func countCodeLines(text string, start int, end int) int {
-	if start < 0 {
-		start = 0
+func buildTinyWrapperMessage(kind string) rule.RuleMessage {
+	return rule.RuleMessage{
+		Id:          "tinyWrapper",
+		Description: "This " + kind + " only forwards directly to another call. Inline the call instead of creating a wrapper function.",
 	}
-	if end < start || start >= len(text) {
-		return 0
-	}
-	if end > len(text) {
-		end = len(text)
-	}
-
-	count := 0
-	for _, line := range strings.Split(text[start:end], "\n") {
-		if strings.TrimSpace(line) != "" {
-			count++
-		}
-	}
-	return count
 }
 
-func executableRange(node *ast.Node) (int, int, bool) {
+func getWrappedExpression(node *ast.Node) (*ast.Node, bool) {
 	if node == nil || node.Body() == nil {
-		return 0, 0, false
+		return nil, false
 	}
 
 	body := ast.SkipParentheses(node.Body())
 	if body == nil {
-		return 0, 0, false
+		return nil, false
 	}
 
-	if ast.IsBlock(body) {
-		statements := body.AsBlock().Statements.Nodes
-		if len(statements) == 0 {
-			return 0, 0, false
+	if !ast.IsBlock(body) {
+		return unwrapAwaitExpression(body), true
+	}
+
+	statements := body.AsBlock().Statements.Nodes
+	if len(statements) != 1 {
+		return nil, false
+	}
+
+	statement := statements[0]
+	switch statement.Kind {
+	case ast.KindReturnStatement:
+		ret := statement.AsReturnStatement()
+		if ret.Expression == nil {
+			return nil, false
 		}
-		return statements[0].Pos(), statements[len(statements)-1].End(), true
+		return unwrapAwaitExpression(ret.Expression), true
+	case ast.KindExpressionStatement:
+		return unwrapAwaitExpression(statement.AsExpressionStatement().Expression), true
+	default:
+		return nil, false
 	}
-
-	return body.Pos(), body.End(), true
 }
 
-func containsCallExpression(node *ast.Node, root *ast.Node) bool {
+func unwrapAwaitExpression(node *ast.Node) *ast.Node {
+	current := ast.SkipParentheses(node)
+	for current != nil && ast.IsAwaitExpression(current) {
+		current = ast.SkipParentheses(current.AsAwaitExpression().Expression)
+	}
+	return current
+}
+
+func isSimpleCallee(node *ast.Node) bool {
+	node = ast.SkipParentheses(node)
 	if node == nil {
 		return false
 	}
-	if node != root && ast.IsFunctionLike(node) {
-		return false
-	}
-	if node.Kind == ast.KindCallExpression {
+
+	switch {
+	case ast.IsIdentifier(node):
 		return true
+	case ast.IsPropertyAccessExpression(node):
+		return isSimpleCallee(node.AsPropertyAccessExpression().Expression)
+	case ast.IsElementAccessExpression(node):
+		return isSimpleCallee(node.AsElementAccessExpression().Expression) && isSimpleForwardedArgument(node.AsElementAccessExpression().ArgumentExpression)
+	default:
+		return node.Kind == ast.KindThisKeyword || node.Kind == ast.KindSuperKeyword
 	}
-	return node.ForEachChild(func(child *ast.Node) bool {
-		return containsCallExpression(child, root)
-	})
 }
 
-func buildTinyWrapperMessage(kind string, lines int) rule.RuleMessage {
-	lineWord := "lines"
-	if lines == 1 {
-		lineWord = "line"
+func isSimpleForwardedArgument(node *ast.Node) bool {
+	node = ast.SkipParentheses(node)
+	if node == nil {
+		return false
 	}
-	return rule.RuleMessage{
-		Id: "tinyWrapper",
-		Description: fmt.Sprintf(
-			"This %s is only %d %s of code and contains a function call. Inline the call directly instead of creating a wrapper function.",
-			kind,
-			lines,
-			lineWord,
-		),
+
+	if ast.IsSpreadElement(node) {
+		return isSimpleForwardedArgument(node.AsSpreadElement().Expression)
+	}
+
+	// Treat computed arguments as meaningful behavior so small adapter functions
+	// like `write(normalize(value))` or `write(user.name)` stay allowed.
+	return ast.IsIdentifier(node) || node.Kind == ast.KindThisKeyword || node.Kind == ast.KindSuperKeyword
+}
+
+func allArgumentsAreSimple(arguments *ast.NodeList) bool {
+	if arguments == nil {
+		return true
+	}
+
+	for _, arg := range arguments.Nodes {
+		if !isSimpleForwardedArgument(arg) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func forwardsDirectlyToAnotherCall(node *ast.Node) bool {
+	node = ast.SkipParentheses(node)
+	if node == nil {
+		return false
+	}
+
+	switch node.Kind {
+	case ast.KindCallExpression:
+		call := node.AsCallExpression()
+		if !isSimpleCallee(call.Expression) {
+			return false
+		}
+		return allArgumentsAreSimple(call.Arguments)
+	case ast.KindNewExpression:
+		newExpr := node.AsNewExpression()
+		if !isSimpleCallee(newExpr.Expression) {
+			return false
+		}
+		return allArgumentsAreSimple(newExpr.Arguments)
+	default:
+		return false
 	}
 }
 
 func checkTinyWrapper(ctx rule.RuleContext, node *ast.Node, kind string) {
-	start, end, ok := executableRange(node)
-	if !ok {
-		return
-	}
-
-	body := ast.SkipParentheses(node.Body())
-	if body == nil || !containsCallExpression(body, body) {
-		return
-	}
-
-	lines := countCodeLines(ctx.SourceFile.Text(), start, end)
-	if lines == 0 || lines > maxWrapperLines {
+	wrappedExpr, ok := getWrappedExpression(node)
+	if !ok || !forwardsDirectlyToAnotherCall(wrappedExpr) {
 		return
 	}
 
@@ -111,7 +145,7 @@ func checkTinyWrapper(ctx rule.RuleContext, node *ast.Node, kind string) {
 
 	// Report on the declaration name when available so the warning points at the
 	// abstraction being introduced, not only its body contents.
-	ctx.ReportNode(messageNode, buildTinyWrapperMessage(kind, lines))
+	ctx.ReportNode(messageNode, buildTinyWrapperMessage(kind))
 }
 
 var NoTinyWrapperFunctionRule = rule.Rule{

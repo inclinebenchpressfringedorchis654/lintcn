@@ -26,6 +26,9 @@ var validCases = []rule_tester.ValidTestCase{
 	{Code: `class Counter { next() { return this.value + 1 } value = 0 }`},
 	{Code: `function compute() { const value = 1; const next = value + 1; return next }`},
 	{Code: `const build = () => ({ id: 1 })`},
+	{Code: `declare function write(value: string): string; declare function normalize(value: string): string; function persist(value: string) { return write(normalize(value)) }`},
+	{Code: `declare function write(value: string): string; function persist(user: { name: string }) { return write(user.name) }`},
+	{Code: `declare function createMemoryRedis(): { url: string }; class ConversationStore { constructor(redis: { url: string }) {} } export function createTestStore(): ConversationStore { return new ConversationStore(createMemoryRedis()) }`},
 	{Code: `
 		declare function prepare(): void;
 		declare function write(value: string): string;
@@ -43,12 +46,11 @@ var validCases = []rule_tester.ValidTestCase{
 var invalidCases = []rule_tester.InvalidTestCase{
 	{
 		Code: `
-			declare function createMemoryRedis(): { url: string };
 			class ConversationStore {
 				constructor(redis: { url: string }) {}
 			}
-			export function createTestStore(): ConversationStore {
-				return new ConversationStore(createMemoryRedis());
+			export function createTestStore(redis: { url: string }): ConversationStore {
+				return new ConversationStore(redis);
 			}
 		`,
 		Errors: []rule_tester.InvalidTestCaseError{{MessageId: "tinyWrapper"}},
@@ -59,18 +61,6 @@ var invalidCases = []rule_tester.InvalidTestCase{
 	},
 	{
 		Code:   `class Repo { persist(value: string) { return write(value) } } declare function write(value: string): string;`,
-		Errors: []rule_tester.InvalidTestCaseError{{MessageId: "tinyWrapper"}},
-	},
-	{
-		Code: `
-			declare function normalize(value: string): string;
-			declare function write(value: string): void;
-			function persist(value: string) {
-				const normalized = normalize(value);
-				write(normalized);
-				return normalized;
-			}
-		`,
 		Errors: []rule_tester.InvalidTestCaseError{{MessageId: "tinyWrapper"}},
 	},
 	{

@@ -1,7 +1,6 @@
 no-tiny-wrapper-function
 
-Warns on tiny functions and methods that are three or fewer executable lines
-and contain another function call.
+Warns on functions and methods that only forward directly to another call.
 
 Source: custom rule for lintcn
 Severity: warn (does not block CI)
@@ -28,22 +27,42 @@ make the codebase more indirect:
 
 What Gets Flagged
 
-- Functions with `<= 3` non-empty executable lines
-- Methods with `<= 3` non-empty executable lines
-- Bodies that contain a function call
+- Functions whose whole body is a direct `return call(...)`
+- Methods whose whole body is a direct `return call(...)`
+- Expression-bodied arrows like `const save = (file) => write(file)`
+- Direct constructor forwarding like `return new Repo(value)`
 
-This includes short wrappers such as:
+This includes wrappers such as:
 
   function persist(value: string) {
-    const normalized = normalize(value)
-    write(normalized)
-    return normalized
+    return write(value)
+  }
+
+  class Repo {
+    persist(value: string) {
+      return write(value)
+    }
   }
 
 What Is Allowed
 
-Short functions and methods are allowed when they only contain expressions and
-do not call other functions:
+Short functions and methods are allowed when they add behavior, even if the
+body still fits in a single call expression. Computed arguments count as real
+behavior, so wrappers like these stay allowed:
+
+  function persist(value: string) {
+    return write(normalize(value))
+  }
+
+  function persist(user: { name: string }) {
+    return write(user.name)
+  }
+
+  export function createTestStore(): ConversationStore {
+    return new ConversationStore(createMemoryRedis())
+  }
+
+These non-call helpers are also allowed:
 
   function sum(a: number, b: number) {
     return a + b
@@ -61,10 +80,10 @@ Example Warning Messages
 
 Function example:
 
-  This function is only 1 line of code and contains a function call. Inline the
-  call directly instead of creating a wrapper function.
+  This function only forwards directly to another call. Inline the call instead
+  of creating a wrapper function.
 
 Method example:
 
-  This method is only 1 line of code and contains a function call. Inline the
-  call directly instead of creating a wrapper function.
+  This method only forwards directly to another call. Inline the call instead
+  of creating a wrapper function.
