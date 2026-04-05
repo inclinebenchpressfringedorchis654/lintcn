@@ -36,7 +36,7 @@ export async function buildBinary({
 
   const rules = discoverRules(lintcnDir)
   if (rules.length === 0) {
-    throw new Error('No rules found in .lintcn/. Run `lintcn add <url>` to add rules.')
+    throw new Error(`No rules found in ${lintcnDir}. Run \`lintcn add <url>\` to add rules.`)
   }
 
   console.log(`Found ${rules.length} custom rule${rules.length === 1 ? '' : 's'} (tsgolint ${tsgolintVersion.slice(0, 8)})`)
