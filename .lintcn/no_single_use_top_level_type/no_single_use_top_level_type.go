@@ -8,6 +8,8 @@ package no_single_use_top_level_type
 
 import (
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/microsoft/typescript-go/shim/ast"
 	"github.com/microsoft/typescript-go/shim/checker"
@@ -15,15 +17,30 @@ import (
 	"github.com/typescript-eslint/tsgolint/lintcn-rules/program_refs"
 )
 
+const maxInlineableTopLevelTypeChars = 120
+
 func buildSingleUseTopLevelTypeMessage(name string, kind string) rule.RuleMessage {
 	return rule.RuleMessage{
 		Id: "singleUseTopLevelType",
 		Description: fmt.Sprintf(
-			"%s `%s` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.",
+			"%s `%s` is used once. Inline it at the use site.",
 			kind,
 			name,
 		),
 	}
+}
+
+func declarationCharacterCount(sourceFile *ast.SourceFile, node *ast.Node) int {
+	if sourceFile == nil || node == nil {
+		return 0
+	}
+
+	text := sourceFile.Text()
+	if node.Pos() < 0 || node.End() > len(text) || node.Pos() >= node.End() {
+		return 0
+	}
+
+	return utf8.RuneCountInString(strings.TrimSpace(text[node.Pos():node.End()]))
 }
 
 func isTopLevelTypeDeclaration(node *ast.Node) bool {
@@ -126,6 +143,9 @@ var NoSingleUseTopLevelTypeRule = rule.Rule{
 
 			allReferences := program_refs.FindSymbolReferences(ctx.Program, ctx.TypeChecker, symbol, program_refs.FindOptions{})
 			if hasRecursiveReference(allReferences, node) {
+				return
+			}
+			if declarationCharacterCount(ctx.SourceFile, node) > maxInlineableTopLevelTypeChars {
 				return
 			}
 

@@ -89,8 +89,57 @@ var validCases = []rule_tester.ValidTestCase{
 		const root: Tree = { value: 'a', children: [] }
 	`},
 	{Code: `
+		type User = {
+			id: string
+			name: string
+			email: string
+			avatarUrl: string
+			roles: Array<'admin' | 'editor' | 'viewer'>
+			preferences: {
+				theme: 'light' | 'dark'
+				locale: string
+				timezone: string
+			}
+		}
+
+		const user: User = {
+			id: '1',
+			name: 'a',
+			email: 'a@example.com',
+			avatarUrl: '/a.png',
+			roles: ['viewer'],
+			preferences: { theme: 'dark', locale: 'en', timezone: 'UTC' },
+		}
+	`},
+	{Code: `
 		interface Tree { value: string; children: Tree[] }
 		const root: Tree = { value: 'a', children: [] }
+	`},
+	{Code: `
+		interface Config {
+			cwd: string
+			entry: string
+			outDir: string
+			plugins: string[]
+			env: {
+				mode: 'dev' | 'prod'
+				region: string
+				debug: boolean
+			}
+			cache: {
+				enabled: boolean
+				directory: string
+			}
+		}
+
+		const config: Config = {
+			cwd: process.cwd(),
+			entry: 'src/index.ts',
+			outDir: 'dist',
+			plugins: [],
+			env: { mode: 'dev', region: 'local', debug: true },
+			cache: { enabled: true, directory: '.cache' },
+		}
 	`},
 	{
 		Code: `

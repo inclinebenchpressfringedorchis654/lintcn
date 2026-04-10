@@ -1,7 +1,7 @@
 
 [TestNoSingleUseTopLevelType/invalid-0 - 1]
 Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
-Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `User` is used once. Inline it at the use site.
    1 | 
    2 |             type User = { name: string }
      |                  ~~~~
@@ -10,7 +10,7 @@ Message: type alias `User` is only referenced once in this program. Inline it at
 
 [TestNoSingleUseTopLevelType/invalid-1 - 1]
 Diagnostic 1: singleUseTopLevelType (2:14 - 2:17)
-Message: interface `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: interface `User` is used once. Inline it at the use site.
    1 | 
    2 |             interface User { name: string }
      |                       ~~~~
@@ -19,14 +19,14 @@ Message: interface `User` is only referenced once in this program. Inline it at 
 
 [TestNoSingleUseTopLevelType/invalid-2 - 1]
 Diagnostic 1: singleUseTopLevelType (2:9 - 2:14)
-Message: type alias `UserId` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `UserId` is used once. Inline it at the use site.
    1 | 
    2 |             type UserId = string
      |                  ~~~~~~
    3 |             type User = { id: UserId }
 
 Diagnostic 2: singleUseTopLevelType (3:9 - 3:12)
-Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `User` is used once. Inline it at the use site.
    2 |             type UserId = string
    3 |             type User = { id: UserId }
      |                  ~~~~
@@ -35,7 +35,7 @@ Message: type alias `User` is only referenced once in this program. Inline it at
 
 [TestNoSingleUseTopLevelType/invalid-3 - 1]
 Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
-Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `User` is used once. Inline it at the use site.
    1 | 
    2 |             type User = { name: string }
      |                  ~~~~
@@ -44,7 +44,7 @@ Message: type alias `User` is only referenced once in this program. Inline it at
 
 [TestNoSingleUseTopLevelType/invalid-4 - 1]
 Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
-Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `User` is used once. Inline it at the use site.
    1 | 
    2 |             type User = { name: string }
      |                  ~~~~
@@ -53,14 +53,14 @@ Message: type alias `User` is only referenced once in this program. Inline it at
 
 [TestNoSingleUseTopLevelType/invalid-5 - 1]
 Diagnostic 1: singleUseTopLevelType (2:14 - 2:24)
-Message: interface `BaseOptions` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: interface `BaseOptions` is used once. Inline it at the use site.
    1 | 
    2 |             interface BaseOptions { cwd: string }
      |                       ~~~~~~~~~~~
    3 |             interface Options extends BaseOptions { mode: 'dev' }
 
 Diagnostic 2: singleUseTopLevelType (3:14 - 3:20)
-Message: interface `Options` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: interface `Options` is used once. Inline it at the use site.
    2 |             interface BaseOptions { cwd: string }
    3 |             interface Options extends BaseOptions { mode: 'dev' }
      |                       ~~~~~~~
@@ -69,14 +69,14 @@ Message: interface `Options` is only referenced once in this program. Inline it 
 
 [TestNoSingleUseTopLevelType/invalid-6 - 1]
 Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
-Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `User` is used once. Inline it at the use site.
    1 | 
    2 |             type User = { name: string }
      |                  ~~~~
    3 |             type Box<T extends User> = { value: T }
 
 Diagnostic 2: singleUseTopLevelType (3:9 - 3:11)
-Message: type alias `Box` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+Message: type alias `Box` is used once. Inline it at the use site.
    2 |             type User = { name: string }
    3 |             type Box<T extends User> = { value: T }
      |                  ~~~
