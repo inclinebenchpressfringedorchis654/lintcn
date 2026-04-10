@@ -1,0 +1,71 @@
+prefer-object-params
+
+Warn on reusable function definitions with 3 or more positional parameters and
+prefer a single object parameter.
+
+Source: custom rule for lintcn
+Severity: warn (does not block CI)
+
+The goal is to stop agents from growing reusable APIs through long positional
+parameter lists. Once a helper needs three or more inputs, a single object
+parameter is usually easier to read, easier to evolve, and harder to call in the
+wrong order.
+
+The Problem
+
+These definitions make call sites harder to scan and easier to mix up:
+
+  function createUser(name: string, email: string, role: string) {
+    return { name, email, role }
+  }
+
+  class UserService {
+    update(name: string, email: string, role: string) {
+      return { name, email, role }
+    }
+  }
+
+  const handlers = {
+    update: (name: string, email: string, role: string) => {
+      return { name, email, role }
+    },
+  }
+
+What Gets Flagged
+
+- Function declarations with 3 or more positional parameters
+- Named function expressions and arrow functions assigned to variables or
+  properties
+- Class methods, constructors, and methods on named object literals
+
+What Is Allowed
+
+- Definitions with 0, 1, or 2 positional parameters
+- Functions that already use a single object parameter
+- Inline callbacks and lambdas passed directly at the use site
+- Inline object literal handlers passed directly into another call
+- `this` parameters do not count toward the positional total
+
+Examples
+
+Flagged:
+
+  function createUser(name: string, email: string, role: string) {
+    return { name, email, role }
+  }
+
+  const createUser = (name: string, email: string, role: string) => {
+    return { name, email, role }
+  }
+
+Allowed:
+
+  function createUser(options: {
+    name: string
+    email: string
+    role: string
+  }) {
+    return options
+  }
+
+  items.map((value, index, array) => value + index + array.length)

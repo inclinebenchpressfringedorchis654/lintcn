@@ -20,6 +20,14 @@ When writing Go rule tests, prefer readable multi-line raw strings for TypeScrip
 snippets instead of dense one-line `Code` strings. Keep the test input shaped
 like real source so snapshots and future edits stay easy to read.
 
+After updating Go rule snapshots, always read the snapshot file back to verify
+the diagnostic wording and highlighted ranges before finishing the task.
+
+The `prefer-object-params` warning is meant for reusable definitions only:
+function declarations, named/assigned lambdas, methods, and constructors with 3+
+positional parameters should prefer a single object parameter, but inline
+callbacks passed directly at the use site are allowed.
+
 User rules import from `internal/rule`, `internal/utils` etc. — same paths
 as tsgolint's own code. The Go workspace allows this because the user module
 name is a child path: `github.com/typescript-eslint/tsgolint/lintcn-rules`.
