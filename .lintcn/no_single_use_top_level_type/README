@@ -1,0 +1,58 @@
+no-single-use-top-level-type
+
+Warns on root-level interfaces and type aliases that are only referenced once in
+the program.
+
+Source: custom rule for lintcn
+Severity: warn (does not block CI)
+
+The goal is to stop agents from leaving behind one-off top-level type names when
+the type can be written directly at its only use site.
+
+The Problem
+
+These declarations add a new global name even though the program only uses them
+once:
+
+  type User = { name: string }
+  const user: User = { name: 'a' }
+
+  interface Config {
+    cwd: string
+  }
+  const config: Config = { cwd: process.cwd() }
+
+What Gets Flagged
+
+- Root-level `type` aliases with exactly one non-declaration reference
+- Root-level `interface` declarations with exactly one non-declaration reference
+- Chains of one-off aliases such as `type UserId = string` used only inside one
+  other top-level type
+
+What Is Allowed
+
+- Types referenced from multiple places
+- Types declared inside a function or other non-root scope
+- Exported types, including `export type { User }`
+- Recursive types that cannot be inlined cleanly
+
+Examples
+
+Flagged:
+
+  type User = { name: string }
+  const user: User = { name: 'a' }
+
+  interface User {
+    name: string
+  }
+  const user: User = { name: 'a' }
+
+Allowed:
+
+  type User = { name: string }
+  const a: User = { name: 'a' }
+  const b: User = { name: 'b' }
+
+  type Tree = { value: string; children: Tree[] }
+  const root: Tree = { value: 'a', children: [] }

@@ -16,6 +16,10 @@ User rules must set `TSGOLINT_SNAPSHOT_CWD=true` when running `go test` so
 snapshots land in `.lintcn/<rule>/__snapshots__/` instead of the cached
 tsgolint source directory.
 
+When writing Go rule tests, prefer readable multi-line raw strings for TypeScript
+snippets instead of dense one-line `Code` strings. Keep the test input shaped
+like real source so snapshots and future edits stay easy to read.
+
 User rules import from `internal/rule`, `internal/utils` etc. — same paths
 as tsgolint's own code. The Go workspace allows this because the user module
 name is a child path: `github.com/typescript-eslint/tsgolint/lintcn-rules`.

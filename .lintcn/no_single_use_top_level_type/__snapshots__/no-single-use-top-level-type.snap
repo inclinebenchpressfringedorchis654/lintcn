@@ -1,0 +1,84 @@
+
+[TestNoSingleUseTopLevelType/invalid-0 - 1]
+Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
+Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             type User = { name: string }
+     |                  ~~~~
+   3 |             const user: User = { name: 'a' }
+---
+
+[TestNoSingleUseTopLevelType/invalid-1 - 1]
+Diagnostic 1: singleUseTopLevelType (2:14 - 2:17)
+Message: interface `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             interface User { name: string }
+     |                       ~~~~
+   3 |             const user: User = { name: 'a' }
+---
+
+[TestNoSingleUseTopLevelType/invalid-2 - 1]
+Diagnostic 1: singleUseTopLevelType (2:9 - 2:14)
+Message: type alias `UserId` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             type UserId = string
+     |                  ~~~~~~
+   3 |             type User = { id: UserId }
+
+Diagnostic 2: singleUseTopLevelType (3:9 - 3:12)
+Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   2 |             type UserId = string
+   3 |             type User = { id: UserId }
+     |                  ~~~~
+   4 |             const user: User = { id: 'a' }
+---
+
+[TestNoSingleUseTopLevelType/invalid-3 - 1]
+Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
+Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             type User = { name: string }
+     |                  ~~~~
+   3 |             function print(user: User) {
+---
+
+[TestNoSingleUseTopLevelType/invalid-4 - 1]
+Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
+Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             type User = { name: string }
+     |                  ~~~~
+   3 |             const user = { name: 'a' } satisfies User
+---
+
+[TestNoSingleUseTopLevelType/invalid-5 - 1]
+Diagnostic 1: singleUseTopLevelType (2:14 - 2:24)
+Message: interface `BaseOptions` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             interface BaseOptions { cwd: string }
+     |                       ~~~~~~~~~~~
+   3 |             interface Options extends BaseOptions { mode: 'dev' }
+
+Diagnostic 2: singleUseTopLevelType (3:14 - 3:20)
+Message: interface `Options` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   2 |             interface BaseOptions { cwd: string }
+   3 |             interface Options extends BaseOptions { mode: 'dev' }
+     |                       ~~~~~~~
+   4 |             const options: Options = { cwd: '', mode: 'dev' }
+---
+
+[TestNoSingleUseTopLevelType/invalid-6 - 1]
+Diagnostic 1: singleUseTopLevelType (2:9 - 2:12)
+Message: type alias `User` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   1 | 
+   2 |             type User = { name: string }
+     |                  ~~~~
+   3 |             type Box<T extends User> = { value: T }
+
+Diagnostic 2: singleUseTopLevelType (3:9 - 3:11)
+Message: type alias `Box` is only referenced once in this program. Inline it at the use site instead of keeping a one-off declaration.
+   2 |             type User = { name: string }
+   3 |             type Box<T extends User> = { value: T }
+     |                  ~~~
+   4 |             const box: Box<{ name: 'a' }> = { value: { name: 'a' } }
+---
