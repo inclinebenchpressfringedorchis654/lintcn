@@ -57,10 +57,9 @@ cli
     if (options.listFiles) {
       passthroughArgs.push('--list-files')
     }
-    // pass through anything after --
-    const doubleDash = (options as Record<string, unknown>)['--']
-    if (doubleDash && Array.isArray(doubleDash)) {
-      passthroughArgs.push(...doubleDash)
+    // pass through anything after -- (goke 6.6.0 always types this as string[])
+    if (options['--'].length > 0) {
+      passthroughArgs.push(...options['--'])
     }
     const exitCode = await lint({
       rebuild: !!options.rebuild,

@@ -12,8 +12,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       goke:
-        specifier: ^6.5.2
-        version: 6.5.2
+        specifier: ^6.6.0
+        version: 6.6.0
       tar:
         specifier: ^7.5.12
         version: 7.5.12
@@ -49,8 +49,8 @@ packages:
     resolution: {integrity: sha512-JGG8pvDi2C+JxidYdIwQDyS/CgcrIdh18cvgxcBge3wSHRQOrooMD3GlFBcmMJAN9M42SAZjDp5zv1dglJjwww==}
     engines: {node: '>=20'}
 
-  goke@6.5.2:
-    resolution: {integrity: sha512-AJKTaBwSj9D9cAVQZOeMBG37Qf5YbCd37dHRUFecSHYYIAPlb8RHGGw7MiLD2aZS2d37gq0zD+B1nfe7xvB7xg==}
+  goke@6.6.0:
+    resolution: {integrity: sha512-4kwY8DG/9D5hfmAEsXvclYQvpkBTkvx7kbAkGGWA8IoIwi1+SjHGdtb0rW5fB4f6SNMVvc7YoCjOpl1UOxWszg==}
     engines: {node: '>=18'}
 
   locate-path@8.0.0:
@@ -118,7 +118,7 @@ snapshots:
       locate-path: 8.0.0
       unicorn-magic: 0.3.0
 
-  goke@6.5.2: {}
+  goke@6.6.0: {}
 
   locate-path@8.0.0:
     dependencies:
