@@ -1,3 +1,64 @@
+## 0.8.0
+
+1. **Diagnostic output now shows `warning` / `error` prefix** — each diagnostic header now includes an explicit severity label so warnings are clear in non-color terminals and CI logs:
+
+   ```
+   warning prefer-object-params — function `createUser` has 3 positional parameters. Use one object parameter instead.
+   error no-unhandled-error — Error-typed return value is not handled.
+   ```
+
+2. **New rule: `no-unsafe-unknown` (warn)** — warns when `unknown` appears in function parameter types or type assertions. Agents often reach for `unknown` when hitting TypeScript friction rather than reading the real types:
+
+   ```ts
+   function run(input: unknown) {}      // warned — use the real type
+   const v = input as unknown as User  // warned — narrow or validate instead
+   ```
+
+3. **New rule: `no-tiny-wrapper-function` (warn)** — warns on functions and methods whose entire body is a direct forwarding call. Keeps the codebase direct instead of building throwaway delegation layers:
+
+   ```ts
+   const save = (file: string) => write(file)   // warned — inline at use site
+   function persist(v: string) { return db.save(v) }  // warned
+   ```
+
+   Computed arguments (`write(normalize(value))`) are allowed — those add real behavior.
+
+4. **New rule: `no-single-use-top-level-function` (warn)** — warns on short top-level functions that are only called once. Suggests inlining at the call site to reduce indirection:
+
+   ```ts
+   function buildQuery(id: string) {
+     return `SELECT * FROM users WHERE id = '${id}'`
+   }
+   // called only once — inline it
+   ```
+
+5. **New rule: `no-single-use-top-level-type` (warn)** — warns on short root-level interfaces and type aliases that are only referenced once. The type just adds an extra name; inlining it at the use site is cleaner:
+
+   ```ts
+   type User = { name: string }   // warned — only used once below
+   const user: User = { name: 'a' }
+   ```
+
+   Exported types, recursive types, and longer declarations are allowed.
+
+6. **New rule: `no-unused-top-level-function` (warn)** — warns on top-level functions with zero callers in the program. Either inline, delete, or promote to a proper exported API.
+
+7. **New rule: `prefer-object-params` (warn)** — warns on reusable function definitions with 3 or more positional parameters. Object parameters are easier to read, easier to evolve, and harder to call in the wrong order:
+
+   ```ts
+   // warned
+   function createUser(name: string, email: string, role: string) {}
+
+   // preferred
+   function createUser(options: { name: string; email: string; role: string }) {}
+   ```
+
+   Inline callbacks passed directly at the call site are exempt.
+
+8. **Clearer error when no rules found** — the "no rules" error message now shows the resolved absolute path to the `.lintcn/` directory it searched, making misconfigured project roots easy to spot.
+
+9. **Fixed UTF-16 code frame rendering** — diagnostic code frames now render correctly for files containing non-ASCII characters or emoji.
+
 ## 0.7.1
 
 1. **`lintcn lint` / `lintcn build` exit 0 when `.lintcn/` not found** — instead of throwing and exiting 1, they now print a helpful message and exit cleanly. Useful when running lintcn in CI on repos that haven't set up rules yet.
