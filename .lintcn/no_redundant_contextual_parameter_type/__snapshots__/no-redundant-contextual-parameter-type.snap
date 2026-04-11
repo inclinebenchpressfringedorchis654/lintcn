@@ -1,0 +1,36 @@
+
+[TestNoRedundantContextualParameterType/invalid-0 - 1]
+Diagnostic 1: redundantContextualParameterType (7:26 - 7:44)
+Message: Parameter type annotation is redundant because the callback context already provides `Context`. Remove the explicit annotation.
+   6 |             tool({
+   7 |                 execute: async (ctx: { command: string }): Promise<{
+     |                                      ~~~~~~~~~~~~~~~~~~~
+   8 |                     stdout: string
+---
+
+[TestNoRedundantContextualParameterType/invalid-1 - 1]
+Diagnostic 1: redundantContextualParameterType (3:20 - 3:38)
+Message: Parameter type annotation is redundant because the callback context already provides `{ command: string; }`. Remove the explicit annotation.
+   2 |             declare function useRunner(fn: (ctx: { command: string }) => void): void
+   3 |             useRunner((ctx: { command: string }) => {
+     |                             ~~~~~~~~~~~~~~~~~~~
+   4 |                 ctx.command
+---
+
+[TestNoRedundantContextualParameterType/invalid-2 - 1]
+Diagnostic 1: redundantContextualParameterType (4:20 - 4:26)
+Message: Parameter type annotation is redundant because the callback context already provides `Context`. Remove the explicit annotation.
+   3 |             declare function useRunner(fn: (ctx: Context) => void): void
+   4 |             useRunner((ctx: Context) => {
+     |                             ~~~~~~~
+   5 |                 ctx.command
+---
+
+[TestNoRedundantContextualParameterType/invalid-3 - 1]
+Diagnostic 1: redundantContextualParameterType (3:38 - 3:56)
+Message: Parameter type annotation is redundant because the callback context already provides `{ command: string; }`. Remove the explicit annotation.
+   2 |             declare const wrapped: (ctx: { command: string }) => void
+   3 |             const run: typeof wrapped = (ctx: { command: string }) => {
+     |                                               ~~~~~~~~~~~~~~~~~~~
+   4 |                 ctx.command
+---
