@@ -46,13 +46,13 @@ cli
   .option('--all-warnings', 'Show warnings for all files, not just git-changed ones')
   .option('--tsgolint-version [version]', 'Override the pinned tsgolint version (tag or commit). For testing unreleased tsgolint versions.')
   .action(async (options) => {
-    const tsgolintVersion = (options.tsgolintVersion as string) || DEFAULT_TSGOLINT_VERSION
+    const tsgolintVersion = options.tsgolintVersion || DEFAULT_TSGOLINT_VERSION
     const passthroughArgs: string[] = []
     if (options.fix) {
       passthroughArgs.push('--fix')
     }
     if (options.tsconfig) {
-      passthroughArgs.push('--tsconfig', options.tsconfig as string)
+      passthroughArgs.push('--tsconfig', options.tsconfig)
     }
     if (options.listFiles) {
       passthroughArgs.push('--list-files')
@@ -79,7 +79,7 @@ cli
       console.log('No .lintcn/ directory found. Run `lintcn add <url>` to add rules.')
       return
     }
-    const tsgolintVersion = (options.tsgolintVersion as string) || DEFAULT_TSGOLINT_VERSION
+    const tsgolintVersion = options.tsgolintVersion || DEFAULT_TSGOLINT_VERSION
     const binaryPath = await buildBinary({ rebuild: !!options.rebuild, tsgolintVersion })
     console.log(binaryPath)
   })

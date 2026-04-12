@@ -1,3 +1,43 @@
+## 0.9.0
+
+1. **New rule: `no-redundant-exported-return-type` (warn)** — warns when exported APIs keep spelling `ReturnType<typeof ...>` even though the function already returns a public named type. This keeps public types direct and easier to read:
+
+   ```ts
+   export interface User {
+     id: string
+   }
+
+   export function getUser(): User {
+     return { id: '1' }
+   }
+
+   export type UserResult = ReturnType<typeof getUser> // warned
+   ```
+
+   Use the named type directly instead:
+
+   ```ts
+   export type UserResult = User
+   ```
+
+2. **New rule: `no-redundant-contextual-parameter-type` (error)** — errors when an inline callback repeats a parameter type that TypeScript already knows from the surrounding API. This removes annotation noise without losing type safety:
+
+   ```ts
+   declare function useRunner(fn: (ctx: { command: string }) => void): void
+
+   useRunner((ctx: { command: string }) => {
+     ctx.command
+   })
+   ```
+
+   Preferred:
+
+   ```ts
+   useRunner((ctx) => {
+     ctx.command
+   })
+   ```
+
 ## 0.8.0
 
 1. **Diagnostic output now shows `warning` / `error` prefix** — each diagnostic header now includes an explicit severity label so warnings are clear in non-color terminals and CI logs:
